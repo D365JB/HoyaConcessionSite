@@ -10,7 +10,7 @@ export default function AdminLogin() {
   const [, navigate] = useLocation();
 
   useEffect(() => {
-    if (!loading && user) {
+    if (!loading && user && user.role === "admin") {
       navigate("/admin/dashboard");
     }
   }, [user, loading, navigate]);
@@ -19,6 +19,37 @@ export default function AdminLogin() {
     return (
       <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: "#f5f7fa" }}>
         <Loader2 className="w-8 h-8 animate-spin" style={{ color: "#003087" }} />
+      </div>
+    );
+  }
+
+  // Authenticated but not an admin — show access denied
+  if (user && user.role !== "admin") {
+    return (
+      <div className="min-h-screen flex flex-col" style={{ backgroundColor: "#f5f7fa" }}>
+        <header style={{ backgroundColor: "#003087" }} className="py-4 shadow-lg">
+          <div className="container flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center font-black text-lg" style={{ color: "#003087" }}>H</div>
+            <div>
+              <h1 className="text-white font-black text-lg" style={{ fontFamily: "Montserrat, sans-serif" }}>HOYAS CONCESSION</h1>
+              <p className="text-xs font-semibold tracking-wide" style={{ color: "#009A44" }}>ADMIN PORTAL</p>
+            </div>
+          </div>
+        </header>
+        <div className="flex-1 flex items-center justify-center p-6">
+          <div className="bg-white rounded-2xl shadow-lg p-8 w-full max-w-sm text-center">
+            <div className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4" style={{ backgroundColor: "#ffebee" }}>
+              <ShieldCheck className="w-8 h-8" style={{ color: "#c62828" }} />
+            </div>
+            <h2 className="text-2xl font-bold mb-2" style={{ color: "#003087", fontFamily: "Montserrat, sans-serif" }}>Access Denied</h2>
+            <p className="text-gray-500 text-sm mb-6">
+              Your account (<span className="font-medium">{user.email ?? user.name}</span>) does not have admin privileges. Contact the site owner to request access.
+            </p>
+            <a href="/" className="block mt-2 text-sm text-gray-400 hover:text-gray-600 transition-colors">
+              ← Back to Volunteer Sign-Up
+            </a>
+          </div>
+        </div>
       </div>
     );
   }

@@ -1,47 +1,62 @@
+/**
+ * Hoyas Concession 2025 Season Seed (corrected)
+ * Mon/Tue/Thu, Aug 4 - Nov 5, 2025
+ * - Skip Sep 8 (Mon) per "skip Sep 7" instruction (Sep 7 is a Sunday)
+ * - Keep Sep 9 (Tue) as instructed
+ * - Skip Sep 22 (Mon), Sep 23 (Tue), Sep 25 (Thu) — no practice Sep 21-25
+ * - End by Nov 5 (Wed); last valid events are Mon Nov 3 and Tue Nov 4
+ */
 import mysql from "mysql2/promise";
 import dotenv from "dotenv";
-import { fileURLToPath } from "url";
-import { dirname, join } from "path";
+dotenv.config();
 
-const __dirname = dirname(fileURLToPath(import.meta.url));
-dotenv.config({ path: join(__dirname, "../.env") });
+const DATES = [
+  "2025-08-04","2025-08-05","2025-08-07",
+  "2025-08-11","2025-08-12","2025-08-14",
+  "2025-08-18","2025-08-19","2025-08-21",
+  "2025-08-25","2025-08-26","2025-08-28",
+  "2025-09-01","2025-09-02","2025-09-04",
+  "2025-09-09","2025-09-11",
+  "2025-09-15","2025-09-16","2025-09-18",
+  "2025-09-29","2025-09-30",
+  "2025-10-02","2025-10-06","2025-10-07","2025-10-09",
+  "2025-10-13","2025-10-14","2025-10-16",
+  "2025-10-20","2025-10-21","2025-10-23",
+  "2025-10-27","2025-10-28","2025-10-30",
+  "2025-11-03","2025-11-04",
+];
 
-const DATABASE_URL = process.env.DATABASE_URL;
+const SLOTS = [
+  { role: "co_cook",           slotIndex: 1 },
+  { role: "kitchen_assistant", slotIndex: 1 },
+  { role: "runner",            slotIndex: 1 },
+  { role: "cashier",           slotIndex: 1 },
+  { role: "cashier",           slotIndex: 2 },
+];
 
-const connection = await mysql.createConnection(DATABASE_URL);
+async function main() {
+  const conn = await mysql.createConnection(process.env.DATABASE_URL);
+  let eventCount = 0;
+  let slotCount = 0;
 
-function generateDates(startDate, endDate) {
-  const dates = [];
-  const current = new Date(startDate + "T12:00:00Z");
-  const end = new Date(endDate + "T12:00:00Z");
-  while (current <= end) {
-    const day = current.getUTCDay();
-    if (day === 1 || day === 2 || day === 4) {
-      dates.push(current.toISOString().split("T")[0]);
+  for (const d of DATES) {
+    const [result] = await conn.execute(
+      "INSERT INTO concession_events (eventDate, season, isActive) VALUES (?, '2025', 1)",
+      [d]
+    );
+    const eventId = result.insertId;
+    eventCount++;
+    for (const slot of SLOTS) {
+      await conn.execute(
+        "INSERT INTO volunteer_slots (eventId, role, slotIndex, isOpen) VALUES (?, ?, ?, 1)",
+        [eventId, slot.role, slot.slotIndex]
+      );
+      slotCount++;
     }
-    current.setUTCDate(current.getUTCDate() + 1);
   }
-  return dates;
+
+  await conn.end();
+  console.log(`Seeded ${eventCount} events and ${slotCount} slots.`);
 }
 
-const START = "2025-08-04";
-const END = "2025-11-05";
-const SKIP_DATES = new Set(["2025-09-01","2025-09-22","2025-09-23","2025-09-25"]);
-const EXTRA_DATES = ["2025-09-03"];
-console.log("Total: " + allDates.length);
-allDates.forEach((d) => console.log(d));
-
-const ROLE_SLOTS = [{role:"co_cook",count:1},{role:"kitchen_assistant",count:1},{role:"runner",count:1},{role:"cashier",count:2}];
-await connection.execute("DELETE FROM volunteers");
-await connection.execute("DELETE FROM volunteer_slots");
-await connection.execute("DELETE FROM concession_events");
-for (const dateStr of allDates) {
-  const [eventResult] = await connection.execute("INSERT INTO concession_events (eventDate, season, isActive) VALUES (?, 2025, true)",[dateStr]);
-  const eventId = eventResult.insertId;
-  for (const { role, count } of ROLE_SLOTS) {
-    for (let i = 0; i < count; i++) {
-      await connection.execute("INSERT INTO volunteer_slots (eventId, role, slotIndex, isOpen) VALUES (?, ?, ?, true)",[eventId, role, i]);
-    }
-  }
-}
-await connection.end();
+main().catch(e => { console.error(e); process.exit(1); });

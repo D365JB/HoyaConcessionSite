@@ -48,3 +48,20 @@
 ## Future / Optional
 - [ ] Upload HOYA logo image and replace "H" text placeholder in header
 - [ ] Promote admin user via DB (set role = 'admin' for your Manus account)
+
+## Schedule Fix (July 27 update)
+- [x] Clear all existing seeded events and re-seed with corrected schedule
+- [x] Mon/Tue/Thu cadence, Aug 4 through Nov 5, 2025
+- [x] Skip Sep 8 (Mon) — Sep 7 is a Sunday; skip the Monday Sep 8
+- [x] Sep 9 (Tuesday) is KEPT as instructed
+- [x] Skip Sep 22 (Mon), Sep 23 (Tue), Sep 25 (Thu) — no practice Sep 21-25
+- [x] End by Nov 5: last events are Mon Nov 3 and Tue Nov 4 (Nov 5 is Wed, not a practice day)
+- [x] 37 events total, 185 volunteer slots
+
+## Admin Hardening (July 27 update)
+- [x] ProtectedAdminRoute wrapper in App.tsx — all /admin/* routes redirect to login if not authenticated or not admin
+- [x] Backend adminProcedure middleware throws FORBIDDEN for non-admins on all admin tRPC procedures
+- [x] Admin login page with Manus OAuth sign-in flow
+- [x] Excel export (XLSX) wired in Volunteers page with client-side generation
+- [x] Search by name/email/phone + status filter on Volunteers page
+- [x] Today's Volunteers panel on Dashboard showing live data
