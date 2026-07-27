@@ -64,7 +64,7 @@ export async function getUserByOpenId(openId: string) {
 export async function getUpcomingEvents(season?: string) {
   const db = await getDb();
   if (!db) return [];
-  // Show all active events - the season dates are fixed (2025 season)
+  // Show all active events - the season dates are fixed (2026 season)
   // and we want volunteers to see the full schedule regardless of current date
   if (season) {
     return db.select().from(concessionEvents).where(and(eq(concessionEvents.isActive, true), eq(concessionEvents.season, season))).orderBy(asc(concessionEvents.eventDate));

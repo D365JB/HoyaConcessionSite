@@ -503,7 +503,7 @@ export default function Home() {
           </div>
           <div className="flex items-center gap-1.5 text-xs text-gray-500">
             <CalendarDays className="w-4 h-4" />
-            <span>2025 Season</span>
+            <span>2026 Season</span>
           </div>
         </div>
 
@@ -543,7 +543,7 @@ export default function Home() {
       <footer style={{ backgroundColor: "#003087" }} className="mt-12 py-8">
         <div className="container text-center">
           <p className="text-white font-bold text-lg mb-1" style={{ fontFamily: "Montserrat, sans-serif" }}>HOYAS YOUTH SPORTS</p>
-          <p className="text-white/60 text-sm">Concession Volunteer Program · 2025 Season</p>
+          <p className="text-white/60 text-sm">Concession Volunteer Program · 2026 Season</p>
           <p className="text-white/40 text-xs mt-3">Questions? Contact your team coordinator.</p>
         </div>
       </footer>

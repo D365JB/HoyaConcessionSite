@@ -23,7 +23,7 @@ export default function AdminSeason() {
   const [editEvent, setEditEvent] = useState<any>(null);
   const [newDate, setNewDate] = useState("");
   const [newLabel, setNewLabel] = useState("");
-  const [newSeason, setNewSeason] = useState("2025");
+  const [newSeason, setNewSeason] = useState("2026");
   const [cronSetupDone, setCronSetupDone] = useState(false);
 
   useEffect(() => {
@@ -194,7 +194,7 @@ export default function AdminSeason() {
             </div>
             <div className="space-y-1.5">
               <Label>Season</Label>
-              <Input value={newSeason} onChange={(e) => setNewSeason(e.target.value)} placeholder="2025" />
+              <Input value={newSeason} onChange={(e) => setNewSeason(e.target.value)} placeholder="2026" />
             </div>
             <div className="space-y-1.5">
               <Label>Label (optional)</Label>

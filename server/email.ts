@@ -80,7 +80,7 @@ export async function sendConfirmationEmail(
           <p style="color:#666;font-size:13px;">Questions? Reply to this email or contact your team coordinator.</p>
         </td></tr>
         <tr><td style="background:#003087;padding:16px;text-align:center;">
-          <p style="color:#ffffff;margin:0;font-size:12px;">© 2025 Hoyas Youth Sports · Concession Volunteer Program</p>
+          <p style="color:#ffffff;margin:0;font-size:12px;">© 2026 Hoyas Youth Sports · Concession Volunteer Program</p>
         </td></tr>
       </table>
     </td></tr>
@@ -141,7 +141,7 @@ export async function sendReminderEmail(
           <p style="color:#666;font-size:13px;">See you tonight! Go Hoyas! 🏈</p>
         </td></tr>
         <tr><td style="background:#003087;padding:16px;text-align:center;">
-          <p style="color:#ffffff;margin:0;font-size:12px;">© 2025 Hoyas Youth Sports · Concession Volunteer Program</p>
+          <p style="color:#ffffff;margin:0;font-size:12px;">© 2026 Hoyas Youth Sports · Concession Volunteer Program</p>
         </td></tr>
       </table>
     </td></tr>

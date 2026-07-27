@@ -205,7 +205,7 @@ function DashboardLayoutContent({ children, setSidebarWidth }: { children: React
             </span>
           </div>
           <div className="ml-auto">
-            <span className="text-xs text-gray-400">2025 Season</span>
+            <span className="text-xs text-gray-400">2026 Season</span>
           </div>
         </header>
         <main className="flex-1 p-4 sm:p-6" style={{ backgroundColor: "#f5f7fa" }}>

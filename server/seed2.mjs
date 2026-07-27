@@ -1,29 +1,36 @@
 /**
- * Hoyas Concession 2025 Season Seed (corrected)
- * Mon/Tue/Thu, Aug 4 - Nov 5, 2025
- * - Skip Sep 8 (Mon) per "skip Sep 7" instruction (Sep 7 is a Sunday)
- * - Keep Sep 9 (Tue) as instructed
- * - Skip Sep 22 (Mon), Sep 23 (Tue), Sep 25 (Thu) — no practice Sep 21-25
- * - End by Nov 5 (Wed); last valid events are Mon Nov 3 and Tue Nov 4
+ * Hoyas Concession 2026 Season Seed
+ * Mon/Tue/Thu, Aug 3 - Nov 5, 2026
+ * - Skip Sep 7 (Monday in 2026)
+ * - Add Sep 9 (Wednesday in 2026 — special extra date)
+ * - Skip Sep 21 (Mon), Sep 22 (Tue), Sep 24 (Thu) — no practice Sep 21-25
+ * - Nov 5 is a Thursday in 2026 — included as final event
+ * Total: 39 events
  */
 import mysql from "mysql2/promise";
 import dotenv from "dotenv";
 dotenv.config();
 
 const DATES = [
-  "2025-08-04","2025-08-05","2025-08-07",
-  "2025-08-11","2025-08-12","2025-08-14",
-  "2025-08-18","2025-08-19","2025-08-21",
-  "2025-08-25","2025-08-26","2025-08-28",
-  "2025-09-01","2025-09-02","2025-09-04",
-  "2025-09-09","2025-09-11",
-  "2025-09-15","2025-09-16","2025-09-18",
-  "2025-09-29","2025-09-30",
-  "2025-10-02","2025-10-06","2025-10-07","2025-10-09",
-  "2025-10-13","2025-10-14","2025-10-16",
-  "2025-10-20","2025-10-21","2025-10-23",
-  "2025-10-27","2025-10-28","2025-10-30",
-  "2025-11-03","2025-11-04",
+  // August 2026
+  "2026-08-03","2026-08-04","2026-08-06",
+  "2026-08-10","2026-08-11","2026-08-13",
+  "2026-08-17","2026-08-18","2026-08-20",
+  "2026-08-24","2026-08-25","2026-08-27",
+  "2026-08-31",
+  // September 2026 (Sep 7 skipped, Sep 9 added as Wed)
+  "2026-09-01","2026-09-03",
+  "2026-09-08","2026-09-09","2026-09-10",
+  "2026-09-14","2026-09-15","2026-09-17",
+  // Sep 21, 22, 24 skipped
+  "2026-09-28","2026-09-29",
+  // October 2026
+  "2026-10-01","2026-10-05","2026-10-06","2026-10-08",
+  "2026-10-12","2026-10-13","2026-10-15",
+  "2026-10-19","2026-10-20","2026-10-22",
+  "2026-10-26","2026-10-27","2026-10-29",
+  // November 2026 (through Nov 5 inclusive)
+  "2026-11-02","2026-11-03","2026-11-05",
 ];
 
 const SLOTS = [
@@ -41,7 +48,7 @@ async function main() {
 
   for (const d of DATES) {
     const [result] = await conn.execute(
-      "INSERT INTO concession_events (eventDate, season, isActive) VALUES (?, '2025', 1)",
+      "INSERT INTO concession_events (eventDate, season, isActive) VALUES (?, '2026', 1)",
       [d]
     );
     const eventId = result.insertId;
