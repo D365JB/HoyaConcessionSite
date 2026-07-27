@@ -8,6 +8,9 @@ import { registerStorageProxy } from "./storageProxy";
 import { appRouter } from "../routers";
 import { createContext } from "./context";
 import { serveStatic, setupVite } from "./vite";
+import { sdk } from "./sdk";
+import { getVolunteersForReminder, markReminderSent, getSlotById } from "../db";
+import { sendReminderEmail } from "../email";
 
 function isPortAvailable(port: number): Promise<boolean> {
   return new Promise(resolve => {
@@ -36,6 +39,33 @@ async function startServer() {
   app.use(express.urlencoded({ limit: "50mb", extended: true }));
   registerStorageProxy(app);
   registerOAuthRoutes(app);
+
+  // ─── Scheduled: Morning Reminder Emails ──────────────────────────────────────
+  app.post("/api/scheduled/morning-reminders", async (req, res) => {
+    try {
+      const user = await sdk.authenticateRequest(req);
+      if (!user.isCron) {
+        return res.status(403).json({ error: "cron-only" });
+      }
+      const rows = await getVolunteersForReminder();
+      let sent = 0;
+      for (const row of rows) {
+        try {
+          const slot = await getSlotById(row.volunteer.slotId);
+          await sendReminderEmail(row.volunteer, row.event, slot);
+          await markReminderSent(row.volunteer.id);
+          sent++;
+        } catch (err) {
+          console.error("[Reminder] Failed to send for volunteer", row.volunteer.id, err);
+        }
+      }
+      return res.json({ ok: true, sent, total: rows.length });
+    } catch (err: any) {
+      console.error("[Reminder] Handler error:", err);
+      return res.status(500).json({ error: err.message, timestamp: new Date().toISOString() });
+    }
+  });
+
   // tRPC API
   app.use(
     "/api/trpc",
