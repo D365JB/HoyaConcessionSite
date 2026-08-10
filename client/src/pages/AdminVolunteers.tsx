@@ -105,6 +105,21 @@ export default function AdminVolunteers() {
 
   const handleExport = () => {
     if (!volunteers) return;
+
+    // UTC-safe date formatter for event dates
+    const fmtEventDate = (dateVal: string | Date) => {
+      const s = typeof dateVal === "string" ? dateVal : dateVal.toISOString();
+      const [y, mo, d] = s.slice(0, 10).split("-").map(Number);
+      const dt = new Date(Date.UTC(y, mo - 1, d, 12, 0, 0));
+      return dt.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric", year: "numeric", timeZone: "UTC" });
+    };
+
+    // UTC-safe formatter for timestamps
+    const fmtTimestamp = (ts: string | Date) => {
+      const dt = typeof ts === "string" ? new Date(ts) : ts;
+      return dt.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric", hour: "numeric", minute: "2-digit" });
+    };
+
     const rows = volunteers.map((row: any) => ({
       "Parent Name": row.volunteer.parentName,
       "Email": row.volunteer.email,
@@ -112,16 +127,36 @@ export default function AdminVolunteers() {
       "Child Name": row.volunteer.childName,
       "Sport": row.volunteer.sport === "football" ? "Football" : "Cheer",
       "Grade": row.volunteer.grade,
-      "Event Date": formatDate(row.event.eventDate),
+      "Event Date": fmtEventDate(row.event.eventDate),
       "Role": ROLE_LABELS[row.slot.role] ?? row.slot.role,
       "Status": STATUS_CONFIG[row.volunteer.status]?.label ?? row.volunteer.status,
-      "Signed Up": new Date(row.volunteer.createdAt).toLocaleDateString(),
+      "Signed Up": fmtTimestamp(row.volunteer.createdAt),
       "Notes": row.volunteer.notes ?? "",
     }));
+
     const ws = XLSX.utils.json_to_sheet(rows);
+
+    // Set column widths
+    ws["!cols"] = [
+      { wch: 22 }, // Parent Name
+      { wch: 28 }, // Email
+      { wch: 16 }, // Phone
+      { wch: 20 }, // Child Name
+      { wch: 10 }, // Sport
+      { wch: 8  }, // Grade
+      { wch: 34 }, // Event Date
+      { wch: 20 }, // Role
+      { wch: 12 }, // Status
+      { wch: 22 }, // Signed Up
+      { wch: 30 }, // Notes
+    ];
+
+    // Freeze the header row
+    ws["!freeze"] = { xSplit: 0, ySplit: 1 };
+
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Volunteers");
-    XLSX.writeFile(wb, `hoyas-volunteers-${new Date().toISOString().split("T")[0]}.xlsx`);
+    XLSX.writeFile(wb, `hoyas-concession-volunteers-${new Date().toISOString().slice(0, 10)}.xlsx`);
     toast.success("Export downloaded!");
   };
 
