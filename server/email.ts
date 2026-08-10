@@ -31,8 +31,10 @@ function getTransporter() {
 }
 
 function formatDate(dateVal: string | Date): string {
-  const d = typeof dateVal === "string" ? new Date(dateVal + "T12:00:00") : dateVal;
-  return d.toLocaleDateString("en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric" });
+  const s = typeof dateVal === "string" ? dateVal : dateVal.toISOString();
+  const [y, m, d] = s.slice(0, 10).split("-").map(Number);
+  const dt = new Date(Date.UTC(y, m - 1, d, 12, 0, 0));
+  return dt.toLocaleDateString("en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric", timeZone: "UTC" });
 }
 
 export async function sendConfirmationEmail(
@@ -43,8 +45,8 @@ export async function sendConfirmationEmail(
   const t = getTransporter();
   if (!t) return;
 
-  const roleLabel = slot ? ROLE_LABELS[slot.role] ?? slot.role : "Volunteer";
-  const roleTime = slot ? ROLE_TIMES[slot.role] ?? "" : "";
+  const roleLabel = slot ? (ROLE_LABELS[slot.role] ?? slot.role) : "Volunteer";
+  const roleTime = slot ? (ROLE_TIMES[slot.role] ?? "") : "";
   const dateStr = formatDate(event.eventDate);
 
   const html = `
@@ -92,6 +94,72 @@ export async function sendConfirmationEmail(
     from: t.from,
     to: volunteer.email,
     subject: `✅ Confirmed: Hoyas Concession Volunteer – ${dateStr}`,
+    html,
+  });
+}
+
+export async function sendAdminNewSignupEmail(
+  volunteer: Volunteer,
+  event: ConcessionEvent,
+  slot?: VolunteerSlot
+) {
+  const t = getTransporter();
+  if (!t) return;
+
+  const adminEmail = process.env.ADMIN_EMAIL;
+  if (!adminEmail) {
+    console.warn("[Email] ADMIN_EMAIL not set — skipping admin notification");
+    return;
+  }
+
+  const roleLabel = slot ? (ROLE_LABELS[slot.role] ?? slot.role) : "Volunteer";
+  const roleTime = slot ? (ROLE_TIMES[slot.role] ?? "") : "";
+  const dateStr = formatDate(event.eventDate);
+  const sportLabel = volunteer.sport === "football" ? "Football" : "Cheer";
+
+  const html = `
+<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"></head>
+<body style="margin:0;padding:0;background:#f4f4f4;font-family:Arial,sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#f4f4f4;padding:20px 0;">
+    <tr><td align="center">
+      <table width="600" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:8px;overflow:hidden;max-width:600px;width:100%;">
+        <tr><td style="background:#003087;padding:24px 32px;text-align:center;">
+          <h1 style="color:#ffffff;margin:0;font-size:24px;font-weight:bold;">HOYAS CONCESSION</h1>
+          <p style="color:#009A44;margin:4px 0 0;font-size:14px;font-weight:600;letter-spacing:1px;">NEW VOLUNTEER SIGN-UP</p>
+        </td></tr>
+        <tr><td style="padding:32px;">
+          <h2 style="color:#003087;margin:0 0 16px;">New volunteer registered!</h2>
+          <p style="color:#333;line-height:1.6;">A new volunteer has signed up for the concession stand.</p>
+          <table width="100%" cellpadding="8" cellspacing="0" style="background:#f8f9fa;border-radius:6px;margin:16px 0;">
+            <tr style="background:#e8eef7;"><td colspan="2" style="color:#003087;font-weight:bold;font-size:13px;padding:10px 8px;">Event Details</td></tr>
+            <tr><td style="color:#666;font-size:13px;width:40%;">Date</td><td style="color:#003087;font-weight:bold;">${dateStr}</td></tr>
+            <tr><td style="color:#666;font-size:13px;">Role</td><td style="color:#003087;font-weight:bold;">${roleLabel}</td></tr>
+            <tr><td style="color:#666;font-size:13px;">Time</td><td style="color:#003087;font-weight:bold;">${roleTime}</td></tr>
+            <tr style="background:#e8eef7;"><td colspan="2" style="color:#003087;font-weight:bold;font-size:13px;padding:10px 8px;">Volunteer Info</td></tr>
+            <tr><td style="color:#666;font-size:13px;">Parent Name</td><td style="color:#333;font-weight:bold;">${volunteer.parentName}</td></tr>
+            <tr><td style="color:#666;font-size:13px;">Email</td><td style="color:#333;">${volunteer.email}</td></tr>
+            <tr><td style="color:#666;font-size:13px;">Phone</td><td style="color:#333;">${volunteer.phone}</td></tr>
+            <tr><td style="color:#666;font-size:13px;">Child Name</td><td style="color:#333;">${volunteer.childName}</td></tr>
+            <tr><td style="color:#666;font-size:13px;">Sport</td><td style="color:#333;">${sportLabel}</td></tr>
+            <tr><td style="color:#666;font-size:13px;">Grade</td><td style="color:#333;">${volunteer.grade}</td></tr>
+          </table>
+          <p style="color:#666;font-size:13px;">Log in to the admin dashboard to manage volunteers.</p>
+        </td></tr>
+        <tr><td style="background:#003087;padding:16px;text-align:center;">
+          <p style="color:#ffffff;margin:0;font-size:12px;">© 2026 Hoyas Youth Sports · Concession Volunteer Program</p>
+        </td></tr>
+      </table>
+    </td></tr>
+  </table>
+</body>
+</html>`;
+
+  await t.transporter.sendMail({
+    from: t.from,
+    to: adminEmail,
+    subject: `🆕 New Volunteer: ${volunteer.parentName} – ${roleLabel} on ${dateStr}`,
     html,
   });
 }

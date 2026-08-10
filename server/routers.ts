@@ -26,7 +26,8 @@ import {
   upsertCronJob,
   listCronJobs,
 } from "./db";
-import { sendConfirmationEmail, sendReminderEmail } from "./email";
+import { getSlotById } from "./db";
+import { sendConfirmationEmail, sendReminderEmail, sendAdminNewSignupEmail } from "./email";
 import { createHeartbeatJob, deleteHeartbeatJob } from "./_core/heartbeat";
 
 // Admin-only middleware
@@ -131,7 +132,13 @@ export const appRouter = router({
         const volunteer = await getVolunteerById(id);
         const event = volunteer ? await getEventById(input.eventId) : null;
         if (volunteer && event) {
-          sendConfirmationEmail(volunteer, event).then(() => markConfirmationSent(id)).catch(console.error);
+          const slot = await getSlotById(input.slotId).catch(() => undefined);
+          // Email volunteer — with role/time from slot
+          sendConfirmationEmail(volunteer, event, slot ?? undefined)
+            .then(() => markConfirmationSent(id))
+            .catch(console.error);
+          // Email admin notification
+          sendAdminNewSignupEmail(volunteer, event, slot ?? undefined).catch(console.error);
         }
         return { id, success: true };
       }),
