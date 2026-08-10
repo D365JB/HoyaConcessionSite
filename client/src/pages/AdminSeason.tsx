@@ -12,8 +12,10 @@ import { toast } from "sonner";
 import { Plus, Trash2, Edit2, Loader2, CalendarDays, ToggleLeft, ToggleRight, Bell, BellOff, CheckCircle2 } from "lucide-react";
 
 function formatDate(dateVal: string | Date): string {
-  const d = typeof dateVal === "string" ? new Date(dateVal + "T12:00:00") : new Date(dateVal);
-  return d.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric", year: "numeric" });
+  const s = typeof dateVal === "string" ? dateVal : dateVal.toISOString();
+  const [y, m, d] = s.slice(0, 10).split("-").map(Number);
+  const dt = new Date(Date.UTC(y, m - 1, d, 12, 0, 0));
+  return dt.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric", year: "numeric", timeZone: "UTC" });
 }
 
 export default function AdminSeason() {

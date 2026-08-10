@@ -56,13 +56,17 @@ type SignupForm = z.infer<typeof signupSchema>;
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function formatEventDate(dateVal: string | Date): string {
-  const d = typeof dateVal === "string" ? new Date(dateVal + "T12:00:00") : new Date(dateVal);
-  return d.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric", year: "numeric" });
+  const s = typeof dateVal === "string" ? dateVal : dateVal.toISOString();
+  const [y, m, d] = s.slice(0, 10).split("-").map(Number);
+  const dt = new Date(Date.UTC(y, m - 1, d, 12, 0, 0));
+  return dt.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric", year: "numeric", timeZone: "UTC" });
 }
 
 function formatShortDate(dateVal: string | Date): string {
-  const d = typeof dateVal === "string" ? new Date(dateVal + "T12:00:00") : new Date(dateVal);
-  return d.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" });
+  const s = typeof dateVal === "string" ? dateVal : dateVal.toISOString();
+  const [y, m, d] = s.slice(0, 10).split("-").map(Number);
+  const dt = new Date(Date.UTC(y, m - 1, d, 12, 0, 0));
+  return dt.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric", timeZone: "UTC" });
 }
 
 // ─── Signup Dialog ────────────────────────────────────────────────────────────
@@ -269,13 +273,13 @@ function EventCard({
             <div className="flex-shrink-0 w-12 h-12 rounded-lg flex flex-col items-center justify-center text-white text-xs font-bold" style={{ backgroundColor: "#003087" }}>
               <span className="text-lg leading-none">
                 {typeof event.eventDate === "string"
-                  ? new Date(event.eventDate + "T12:00:00").getDate()
-                  : new Date(event.eventDate).getDate()}
+                  ? (() => { const s = typeof event.eventDate === "string" ? event.eventDate : event.eventDate.toISOString(); const [y,m,d] = s.slice(0,10).split("-").map(Number); return new Date(Date.UTC(y,m-1,d,12,0,0)).getUTCDate(); })()
+                  : new Date(event.eventDate).getUTCDate()}
               </span>
               <span className="text-[10px] uppercase opacity-80">
                 {typeof event.eventDate === "string"
-                  ? new Date(event.eventDate + "T12:00:00").toLocaleDateString("en-US", { month: "short" })
-                  : new Date(event.eventDate).toLocaleDateString("en-US", { month: "short" })}
+                  ? (() => { const s = typeof event.eventDate === "string" ? event.eventDate : event.eventDate.toISOString(); const [y,m,d] = s.slice(0,10).split("-").map(Number); return new Date(Date.UTC(y,m-1,d,12,0,0)).toLocaleDateString("en-US", { month: "short", timeZone: "UTC" }); })()
+                  : new Date(event.eventDate).toLocaleDateString("en-US", { month: "short", timeZone: "UTC" })}
               </span>
             </div>
             <div className="min-w-0">
