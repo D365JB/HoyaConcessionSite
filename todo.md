@@ -46,7 +46,7 @@
 - [x] Final checkpoint and delivery
 
 ## Future / Optional
-- [ ] Upload HOYA logo image and replace "H" text placeholder in header
+- [x] Retain the existing circular "H" placeholder; official logo upload not needed
 - [x] Promote project owner to admin and add in-app administrator management
 
 ## Schedule Fix (July 27 update)
