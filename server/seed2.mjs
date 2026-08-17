@@ -36,7 +36,6 @@ const DATES = [
 const SLOTS = [
   { role: "co_cook",           slotIndex: 1 },
   { role: "kitchen_assistant", slotIndex: 1 },
-  { role: "runner",            slotIndex: 1 },
   { role: "cashier",           slotIndex: 1 },
   { role: "cashier",           slotIndex: 2 },
 ];

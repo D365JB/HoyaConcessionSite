@@ -202,7 +202,7 @@ export default function AdminSeason() {
               <Label>Label (optional)</Label>
               <Input value={newLabel} onChange={(e) => setNewLabel(e.target.value)} placeholder="e.g. Homecoming Game" />
             </div>
-            <p className="text-xs text-gray-500">Adding an event will automatically create 5 volunteer slots (Co-Cook, Kitchen Assistant, Runner, 2× Cashier).</p>
+            <p className="text-xs text-gray-500">Adding an event will automatically create 4 volunteer slots (Co-Cook, Kitchen Assistant, 2× Cashier).</p>
             <div className="flex gap-3">
               <Button variant="outline" onClick={() => setAddOpen(false)} className="flex-1">Cancel</Button>
               <Button

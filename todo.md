@@ -76,3 +76,7 @@
 - [x] Store password hashes securely and issue signed, HTTP-only admin sessions
 - [x] Update Admin Access so existing admins can create password-based administrator accounts
 - [x] Test login, logout, invalid-password, session, and authorization flows
+
+## Volunteer Roles
+- [x] Remove Runner from all concession event slots and seed definitions
+- [x] Update public signup, admin displays, exports, and tests to reflect the remaining roles

@@ -232,19 +232,19 @@ export async function getEventById(id: number) {
   return result[0];
 }
 
+export const STANDARD_SLOT_DEFINITIONS = [
+  { role: "co_cook" as const, count: 1 },
+  { role: "kitchen_assistant" as const, count: 1 },
+  { role: "cashier" as const, count: 2 },
+] as const;
+
 export async function createEvent(eventDate: string, season: string, label?: string) {
   const db = await getDb();
   if (!db) throw new Error("DB unavailable");
   const [result] = await db.insert(concessionEvents).values({ eventDate: new Date(eventDate + "T12:00:00Z"), season, label, isActive: true });
   const eventId = (result as any).insertId as number;
-  // Create the 5 standard slots
-  const slots = [
-    { role: "co_cook" as const, count: 1 },
-    { role: "kitchen_assistant" as const, count: 1 },
-    { role: "runner" as const, count: 1 },
-    { role: "cashier" as const, count: 2 },
-  ];
-  for (const { role, count } of slots) {
+  // Create the 4 standard slots: Co-Cook, Kitchen Assistant, and two Cashiers.
+  for (const { role, count } of STANDARD_SLOT_DEFINITIONS) {
     for (let i = 0; i < count; i++) {
       await db.insert(volunteerSlots).values({ eventId, role, slotIndex: i, isOpen: true });
     }

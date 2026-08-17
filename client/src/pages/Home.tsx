@@ -27,12 +27,6 @@ const ROLE_META: Record<string, { label: string; time: string; description: stri
     description: "Prepare baskets, restock supplies, assist the cook, kitchen cleanup.",
     requirements: ["Closed-toe shoes required", "Arrive by 5:35 PM", "Training provided"],
   },
-  runner: {
-    label: "Runner",
-    time: "6:15 PM – 8:45 PM",
-    description: "Deliver food, restock supplies, empty trash, sweep and mop before leaving.",
-    requirements: ["Closed-toe shoes required", "Arrive by 6:05 PM", "Training provided"],
-  },
   cashier: {
     label: "Cashier",
     time: "6:15 PM – 8:45 PM",
@@ -41,7 +35,7 @@ const ROLE_META: Record<string, { label: string; time: string; description: stri
   },
 };
 
-const ROLE_ORDER = ["co_cook", "kitchen_assistant", "runner", "cashier"];
+const ROLE_ORDER = ["co_cook", "kitchen_assistant", "cashier"];
 
 const signupSchema = z.object({
   parentName: z.string().min(2, "Parent name is required"),

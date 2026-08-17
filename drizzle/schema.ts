@@ -66,7 +66,7 @@ export type InsertConcessionEvent = typeof concessionEvents.$inferInsert;
 export const volunteerSlots = mysqlTable("volunteer_slots", {
   id: int("id").autoincrement().primaryKey(),
   eventId: int("eventId").notNull().references(() => concessionEvents.id, { onDelete: "cascade" }),
-  role: mysqlEnum("role", ["co_cook", "kitchen_assistant", "runner", "cashier"]).notNull(),
+  role: mysqlEnum("role", ["co_cook", "kitchen_assistant", "cashier"]).notNull(),
   slotIndex: int("slotIndex").notNull(),
   isOpen: boolean("isOpen").default(true).notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),

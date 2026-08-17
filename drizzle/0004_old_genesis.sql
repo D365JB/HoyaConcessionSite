@@ -1,0 +1,1 @@
+ALTER TABLE `volunteer_slots` MODIFY COLUMN `role` enum('co_cook','kitchen_assistant','cashier') NOT NULL;

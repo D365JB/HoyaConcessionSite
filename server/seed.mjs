@@ -73,7 +73,6 @@ allDates.forEach((d) => console.log(d));
 const ROLE_SLOTS = [
   { role: "co_cook", count: 1 },
   { role: "kitchen_assistant", count: 1 },
-  { role: "runner", count: 1 },
   { role: "cashier", count: 2 },
 ];
 

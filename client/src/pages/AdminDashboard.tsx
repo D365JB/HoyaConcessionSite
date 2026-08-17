@@ -10,7 +10,6 @@ import { Loader2, Users, CalendarDays, CheckCircle2, AlertCircle, Clock } from "
 const ROLE_LABELS: Record<string, string> = {
   co_cook: "Co-Cook",
   kitchen_assistant: "Kitchen Assistant",
-  runner: "Runner",
   cashier: "Cashier",
 };
 

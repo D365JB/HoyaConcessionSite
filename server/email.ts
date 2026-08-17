@@ -4,14 +4,12 @@ import type { Volunteer, ConcessionEvent, VolunteerSlot } from "../drizzle/schem
 const ROLE_LABELS: Record<string, string> = {
   co_cook: "Co-Cook",
   kitchen_assistant: "Kitchen Assistant",
-  runner: "Runner",
   cashier: "Cashier",
 };
 
 const ROLE_TIMES: Record<string, string> = {
   co_cook: "5:45 PM – 8:15 PM",
   kitchen_assistant: "5:45 PM – 8:15 PM",
-  runner: "6:15 PM – 8:45 PM",
   cashier: "6:15 PM – 8:45 PM",
 };
 
