@@ -5,7 +5,7 @@ import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Loader2, LockKeyhole, ShieldCheck } from "lucide-react";
+import { SpinnerIos20Regular as Loader2, LockClosed24Regular as LockKeyhole, ShieldCheckmark24Regular as ShieldCheck } from "@fluentui/react-icons";
 import { toast } from "sonner";
 
 export default function AdminLogin() {
@@ -39,7 +39,7 @@ export default function AdminLogin() {
     <div className="flex min-h-screen flex-col" style={{ backgroundColor: "#f5f7fa" }}>
       <header className="py-4 shadow-lg" style={{ backgroundColor: "#003087" }}>
         <div className="container flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-white text-lg font-black" style={{ color: "#003087" }}>H</div>
+          <img src="/logo.png" alt="Hoyas logo" className="h-10 w-10" />
           <div><h1 className="text-lg font-black text-white" style={{ fontFamily: "Montserrat, sans-serif" }}>HOYAS CONCESSION</h1><p className="text-xs font-semibold tracking-wide" style={{ color: "#009A44" }}>ADMIN PORTAL</p></div>
         </div>
       </header>

@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { AlertCircle, Home } from "lucide-react";
+import { ErrorCircle24Regular as AlertCircle, Home24Regular as Home } from "@fluentui/react-icons";
 import { useLocation } from "wouter";
 
 export default function NotFound() {

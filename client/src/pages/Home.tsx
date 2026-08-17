@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { CalendarDays, Clock, Users, ChevronDown, ChevronUp, CheckCircle2, AlertCircle, Loader2 } from "lucide-react";
+import { CalendarLtr24Regular as CalendarDays, Clock24Regular as Clock, People24Regular as Users, ChevronDown24Regular as ChevronDown, ChevronUp24Regular as ChevronUp, CheckmarkCircle24Regular as CheckCircle2, ErrorCircle24Regular as AlertCircle, SpinnerIos20Regular as Loader2 } from "@fluentui/react-icons";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -365,7 +365,7 @@ function EventCard({
                           size="sm"
                           onClick={() => onSelectSlot(slot, event)}
                           className="text-white font-semibold btn-active-scale h-8 px-4 text-sm"
-                          style={{ backgroundColor: "#009A44" }}
+                          style={{ backgroundColor: "#007a35" }}
                         >
                           {slots.length > 1 ? `Sign Up (Slot ${idx + 1})` : "Sign Up"}
                         </Button>
@@ -416,9 +416,7 @@ export default function Home() {
         <div className="container py-3 sm:py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-white flex items-center justify-center font-black text-lg sm:text-xl" style={{ color: "#003087" }}>
-                H
-              </div>
+              <img src="/logo.png" alt="Hoyas logo" className="w-10 h-10 sm:w-12 sm:h-12" />
               <div>
                 <h1 className="text-white font-black text-lg sm:text-xl leading-tight" style={{ fontFamily: "Montserrat, sans-serif" }}>
                   HOYAS CONCESSION
@@ -463,7 +461,7 @@ export default function Home() {
       </div>
 
       {/* Info Bar */}
-      <div style={{ backgroundColor: "#009A44" }} className="py-3">
+      <div style={{ backgroundColor: "#007a35" }} className="py-3">
         <div className="container">
           <div className="flex flex-wrap justify-center gap-x-6 gap-y-1 text-white text-xs sm:text-sm font-medium">
             <span>✓ Volunteers must be 15+</span>
@@ -483,7 +481,7 @@ export default function Home() {
               <p className="font-semibold" style={{ color: "#007a35" }}>You're signed up!</p>
               <p className="text-sm text-gray-700">You've been registered for <strong>{successEvent}</strong>. Check your email for a confirmation.</p>
             </div>
-            <button onClick={() => setSuccessEvent(null)} className="ml-auto text-gray-400 hover:text-gray-600">✕</button>
+            <button onClick={() => setSuccessEvent(null)} aria-label="Dismiss confirmation" className="ml-auto text-gray-400 hover:text-gray-600">✕</button>
           </div>
         </div>
       )}

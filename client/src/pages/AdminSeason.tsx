@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { Plus, Trash2, Edit2, Loader2, CalendarDays, ToggleLeft, ToggleRight, Bell, BellOff, CheckCircle2 } from "lucide-react";
+import { Add24Regular as Plus, Delete24Regular as Trash2, Edit24Regular as Edit2, SpinnerIos20Regular as Loader2, CalendarLtr24Regular as CalendarDays, ToggleLeft24Regular as ToggleLeft, ToggleRight24Regular as ToggleRight, Alert24Regular as Bell, AlertOff24Regular as BellOff, CheckmarkCircle24Regular as CheckCircle2 } from "@fluentui/react-icons";
 
 function formatDate(dateVal: string | Date): string {
   const s = typeof dateVal === "string" ? dateVal : dateVal.toISOString();
@@ -102,7 +102,7 @@ export default function AdminSeason() {
                   {deleteCron.isPending ? <Loader2 className="w-3 h-3 animate-spin" /> : <><BellOff className="w-3 h-3 mr-1" />Disable</>}
                 </Button>
               ) : (
-                <Button size="sm" className="text-xs h-8 text-white" style={{ backgroundColor: "#009A44" }}
+                <Button size="sm" className="text-xs h-8 text-white" style={{ backgroundColor: "#007a35" }}
                   onClick={() => setupCron.mutate()} disabled={setupCron.isPending}>
                   {setupCron.isPending ? <Loader2 className="w-3 h-3 animate-spin" /> : <><Bell className="w-3 h-3 mr-1" />Enable</>}
                 </Button>

@@ -9,7 +9,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { Loader2, LockKeyhole, Plus, Search, ShieldCheck, UserCog, UsersRound } from "lucide-react";
+import { SpinnerIos20Regular as Loader2, LockClosed24Regular as LockKeyhole, Add24Regular as Plus, Search24Regular as Search, ShieldCheckmark24Regular as ShieldCheck, Settings24Regular as UserCog, People24Regular as UsersRound } from "@fluentui/react-icons";
 
 function formatLastSignedIn(value: Date | string | null) {
   if (!value) return "Never";
@@ -90,7 +90,7 @@ export default function AdminAccess() {
               <CardTitle className="flex items-center gap-2" style={{ color: "#003087" }}><LockKeyhole className="h-5 w-5" /> Password-based administrator accounts</CardTitle>
               <CardDescription className="mt-1.5 max-w-2xl leading-5">Passwords are stored as secure hashes only. New admins can sign in immediately with the email and password you create.</CardDescription>
             </div>
-            <Button onClick={() => setDialogOpen(true)} className="w-full text-white sm:w-auto" style={{ backgroundColor: "#009A44" }}><Plus className="mr-2 h-4 w-4" /> Create Admin</Button>
+            <Button onClick={() => setDialogOpen(true)} className="w-full text-white sm:w-auto" style={{ backgroundColor: "#007a35" }}><Plus className="mr-2 h-4 w-4" /> Create Admin</Button>
           </CardHeader>
         </Card>
 
@@ -122,7 +122,7 @@ export default function AdminAccess() {
             <div className="space-y-1.5"><Label htmlFor="admin-name">Name</Label><Input id="admin-name" required value={form.name} onChange={(event) => setForm({ ...form, name: event.target.value })} /></div>
             <div className="space-y-1.5"><Label htmlFor="admin-email">Email</Label><Input id="admin-email" type="email" required value={form.email} onChange={(event) => setForm({ ...form, email: event.target.value })} /></div>
             <div className="space-y-1.5"><Label htmlFor="admin-password">Temporary password</Label><Input id="admin-password" type="password" minLength={12} required autoComplete="new-password" value={form.password} onChange={(event) => setForm({ ...form, password: event.target.value })} /><p className="text-xs text-gray-500">Use at least 12 characters. Share it securely with the new administrator.</p></div>
-            <Button type="submit" className="w-full text-white" style={{ backgroundColor: "#009A44" }} disabled={createAdmin.isPending}>{createAdmin.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Create Admin</Button>
+            <Button type="submit" className="w-full text-white" style={{ backgroundColor: "#007a35" }} disabled={createAdmin.isPending}>{createAdmin.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Create Admin</Button>
           </form>
         </DialogContent>
       </Dialog>

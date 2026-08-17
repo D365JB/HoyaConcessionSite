@@ -5,7 +5,7 @@ import { trpc } from "@/lib/trpc";
 import DashboardLayout from "@/components/DashboardLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, Users, CalendarDays, CheckCircle2, AlertCircle, Clock } from "lucide-react";
+import { SpinnerIos20Regular as Loader2, People24Regular as Users, CalendarLtr24Regular as CalendarDays, CheckmarkCircle24Regular as CheckCircle2, ErrorCircle24Regular as AlertCircle, Clock24Regular as Clock } from "@fluentui/react-icons";
 
 const ROLE_LABELS: Record<string, string> = {
   co_cook: "Co-Cook",

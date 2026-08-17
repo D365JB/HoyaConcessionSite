@@ -20,7 +20,7 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 import { useIsMobile } from "@/hooks/useMobile";
-import { LayoutDashboard, LogOut, Users, Calendar, ExternalLink, PanelLeft, ShieldCheck } from "lucide-react";
+import { Grid24Regular as LayoutDashboard, SignOut24Regular as LogOut, People24Regular as Users, CalendarLtr24Regular as Calendar, Open24Regular as ExternalLink, PanelLeft24Regular as PanelLeft, ShieldCheckmark24Regular as ShieldCheck } from "@fluentui/react-icons";
 import { CSSProperties, useEffect, useRef, useState } from "react";
 import { useLocation } from "wouter";
 import { DashboardLayoutSkeleton } from "./DashboardLayoutSkeleton";
@@ -56,7 +56,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     return (
       <div className="flex items-center justify-center min-h-screen" style={{ backgroundColor: "#f5f7fa" }}>
         <div className="flex flex-col items-center gap-6 p-8 max-w-sm w-full bg-white rounded-2xl shadow-lg">
-          <div className="w-16 h-16 rounded-full flex items-center justify-center font-black text-2xl text-white" style={{ backgroundColor: "#003087" }}>H</div>
+          <img src="/logo.png" alt="Hoyas logo" className="w-16 h-16" />
           <div className="text-center">
             <h1 className="text-xl font-bold" style={{ color: "#003087" }}>Admin Access Required</h1>
             <p className="text-sm text-gray-500 mt-2">Sign in to access the Hoyas Concession admin dashboard.</p>

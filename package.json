@@ -18,6 +18,7 @@
   "dependencies": {
     "@aws-sdk/client-s3": "^3.693.0",
     "@aws-sdk/s3-request-presigner": "^3.693.0",
+    "@fluentui/react-icons": "^2.0.335",
     "@hookform/resolvers": "^5.2.2",
     "@radix-ui/react-accordion": "^1.2.12",
     "@radix-ui/react-alert-dialog": "^1.1.15",
@@ -117,7 +118,10 @@
       "wouter@3.7.1": "patches/wouter@3.7.1.patch"
     },
     "overrides": {
-      "tailwindcss>nanoid": "3.3.7"
+      "tailwindcss>nanoid": "3.3.7",
+      "@cloudflare/workers-types": "5.20260810.1",
+      "wrangler": "4.120.0",
+      "sharp": "0.35.3"
     }
   }
 }

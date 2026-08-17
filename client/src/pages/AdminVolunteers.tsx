@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { Search, Download, Loader2, Edit2, Trash2, CheckCircle2, XCircle, UserCheck, UserX, RotateCcw } from "lucide-react";
+import { Search24Regular as Search, ArrowDownload24Regular as Download, SpinnerIos20Regular as Loader2, Edit24Regular as Edit2, Delete24Regular as Trash2, CheckmarkCircle24Regular as CheckCircle2, DismissCircle24Regular as XCircle, PersonAvailable24Regular as UserCheck, PersonProhibited24Regular as UserX, ArrowClockwise24Regular as RotateCcw } from "@fluentui/react-icons";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -200,7 +200,7 @@ export default function AdminVolunteers() {
             onClick={handleExport}
             disabled={!volunteers || volunteers.length === 0}
             className="text-white btn-active-scale flex-shrink-0"
-            style={{ backgroundColor: "#009A44" }}
+            style={{ backgroundColor: "#007a35" }}
           >
             <Download className="w-4 h-4 mr-2" />
             Export Excel
@@ -301,7 +301,7 @@ export default function AdminVolunteers() {
             <DialogTitle style={{ color: "#003087" }}>Edit Volunteer</DialogTitle>
           </DialogHeader>
           <form onSubmit={handleSubmit(onEditSubmit)} className="space-y-4 mt-2">
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-1.5">
                 <Label>Parent Name</Label>
                 <Input {...register("parentName")} />
