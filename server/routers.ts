@@ -24,6 +24,7 @@ import {
   getCronJob,
   upsertCronJob,
   listCronJobs,
+  getActiveAdminEmails,
 } from "./db";
 import { getSlotById } from "./db";
 import { createLocalAdminAccount, deactivateLocalAdminAccount, getLocalAdminAccountByEmail, listLocalAdminAccounts } from "./db";
@@ -100,14 +101,14 @@ export const appRouter = router({
       }),
 
     create: adminProcedure
-      .input(z.object({ eventDate: z.string(), season: z.string(), label: z.string().optional() }))
+      .input(z.object({ eventDate: z.string(), season: z.string(), label: z.string().optional(), location: z.string().optional() }))
       .mutation(async ({ input }) => {
-        const id = await createEvent(input.eventDate, input.season, input.label);
+        const id = await createEvent(input.eventDate, input.season, input.label, input.location);
         return { id };
       }),
 
     update: adminProcedure
-      .input(z.object({ id: z.number(), eventDate: z.string().optional(), label: z.string().optional(), isActive: z.boolean().optional() }))
+      .input(z.object({ id: z.number(), eventDate: z.string().optional(), label: z.string().optional(), location: z.string().optional(), isActive: z.boolean().optional() }))
       .mutation(async ({ input }) => {
         const { id, ...data } = input;
         await updateEvent(id, data);
@@ -157,8 +158,10 @@ export const appRouter = router({
           sendConfirmationEmail(volunteer, event, slot ?? undefined)
             .then(() => markConfirmationSent(id))
             .catch(console.error);
-          // Email admin notification
-          sendAdminNewSignupEmail(volunteer, event, slot ?? undefined).catch(console.error);
+          // Notify every active admin of the new signup
+          getActiveAdminEmails()
+            .then((adminEmails) => sendAdminNewSignupEmail(volunteer, event, slot ?? undefined, adminEmails))
+            .catch(console.error);
         }
         return { id, success: true };
       }),

@@ -25,6 +25,7 @@ export default function AdminSeason() {
   const [editEvent, setEditEvent] = useState<any>(null);
   const [newDate, setNewDate] = useState("");
   const [newLabel, setNewLabel] = useState("");
+  const [newLocation, setNewLocation] = useState("");
   const [newSeason, setNewSeason] = useState("2026");
   const [cronSetupDone, setCronSetupDone] = useState(false);
 
@@ -48,7 +49,7 @@ export default function AdminSeason() {
   });
 
   const createEvent = trpc.events.create.useMutation({
-    onSuccess: () => { utils.events.listAll.invalidate(); utils.events.listUpcoming.invalidate(); setAddOpen(false); setNewDate(""); setNewLabel(""); toast.success("Event added!"); },
+    onSuccess: () => { utils.events.listAll.invalidate(); utils.events.listUpcoming.invalidate(); setAddOpen(false); setNewDate(""); setNewLabel(""); setNewLocation(""); toast.success("Event added!"); },
     onError: (e) => toast.error(e.message),
   });
 
@@ -146,6 +147,7 @@ export default function AdminSeason() {
                       <div className="flex items-center gap-2 mt-0.5 flex-wrap">
                         <span className="text-xs text-gray-500">Season {event.season}</span>
                         {event.label && <span className="text-xs text-gray-400">· {event.label}</span>}
+                        {event.location && <span className="text-xs text-gray-400">· {event.location}</span>}
                         <span className="text-xs px-1.5 py-0.5 rounded-full" style={{ backgroundColor: openSlots > 0 ? "#e8eef7" : "#e6f5ec", color: openSlots > 0 ? "#003087" : "#007a35" }}>
                           {openSlots}/{totalSlots} open
                         </span>
@@ -202,11 +204,15 @@ export default function AdminSeason() {
               <Label>Label (optional)</Label>
               <Input value={newLabel} onChange={(e) => setNewLabel(e.target.value)} placeholder="e.g. Homecoming Game" />
             </div>
+            <div className="space-y-1.5">
+              <Label>Location (optional)</Label>
+              <Input value={newLocation} onChange={(e) => setNewLocation(e.target.value)} placeholder="e.g. Memorial Field concession stand" />
+            </div>
             <p className="text-xs text-gray-500">Adding an event will automatically create 4 volunteer slots (Co-Cook, Kitchen Assistant, 2× Cashier).</p>
             <div className="flex gap-3">
               <Button variant="outline" onClick={() => setAddOpen(false)} className="flex-1">Cancel</Button>
               <Button
-                onClick={() => { if (!newDate) { toast.error("Please select a date"); return; } createEvent.mutate({ eventDate: newDate, season: newSeason, label: newLabel || undefined }); }}
+                onClick={() => { if (!newDate) { toast.error("Please select a date"); return; } createEvent.mutate({ eventDate: newDate, season: newSeason, label: newLabel || undefined, location: newLocation || undefined }); }}
                 disabled={createEvent.isPending}
                 className="flex-1 text-white"
                 style={{ backgroundColor: "#003087" }}
@@ -242,10 +248,18 @@ export default function AdminSeason() {
                   placeholder="e.g. Homecoming Game"
                 />
               </div>
+              <div className="space-y-1.5">
+                <Label>Location (optional)</Label>
+                <Input
+                  defaultValue={editEvent.location ?? ""}
+                  onChange={(e) => setEditEvent({ ...editEvent, _newLocation: e.target.value })}
+                  placeholder="e.g. Memorial Field concession stand"
+                />
+              </div>
               <div className="flex gap-3">
                 <Button variant="outline" onClick={() => setEditEvent(null)} className="flex-1">Cancel</Button>
                 <Button
-                  onClick={() => updateEvent.mutate({ id: editEvent.id, eventDate: editEvent._newDate, label: editEvent._newLabel })}
+                  onClick={() => updateEvent.mutate({ id: editEvent.id, eventDate: editEvent._newDate, label: editEvent._newLabel, location: editEvent._newLocation })}
                   disabled={updateEvent.isPending}
                   className="flex-1 text-white"
                   style={{ backgroundColor: "#003087" }}

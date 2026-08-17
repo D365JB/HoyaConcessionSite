@@ -51,6 +51,7 @@ export const concessionEvents = mysqlTable("concession_events", {
   id: int("id").autoincrement().primaryKey(),
   eventDate: date("eventDate").notNull(),
   label: varchar("label", { length: 128 }),
+  location: varchar("location", { length: 256 }),
   isActive: boolean("isActive").default(true).notNull(),
   season: varchar("season", { length: 32 }).default("2025").notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),

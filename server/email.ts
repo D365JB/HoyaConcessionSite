@@ -2,7 +2,7 @@ import nodemailer from "nodemailer";
 import type { Volunteer, ConcessionEvent, VolunteerSlot } from "../drizzle/schema";
 
 type WorkerEmailBinding = {
-  send(message: { to: string; from: string; subject: string; html: string; text?: string }): Promise<void>;
+  send(message: { to: string | string[]; from: string; subject: string; html: string; text?: string }): Promise<void>;
 };
 
 let workerEmail: WorkerEmailBinding | null = null;
@@ -30,7 +30,7 @@ function getTransporter() {
   if (workerEmail && workerEmailFrom) {
     return {
       transporter: {
-        sendMail: async (message: { to: string; subject: string; html: string }) =>
+        sendMail: async (message: { to: string | string[]; subject: string; html: string }) =>
           workerEmail!.send({ to: message.to, from: workerEmailFrom!, subject: message.subject, html: message.html }),
       },
       from: workerEmailFrom,
@@ -94,6 +94,7 @@ export async function sendConfirmationEmail(
             <tr><td style="color:#666;font-size:13px;width:40%;">Date</td><td style="color:#003087;font-weight:bold;">${dateStr}</td></tr>
             <tr><td style="color:#666;font-size:13px;">Role</td><td style="color:#003087;font-weight:bold;">${roleLabel}</td></tr>
             <tr><td style="color:#666;font-size:13px;">Time</td><td style="color:#003087;font-weight:bold;">${roleTime}</td></tr>
+            ${event.location ? `<tr><td style="color:#666;font-size:13px;">Location</td><td style="color:#003087;font-weight:bold;">${event.location}</td></tr>` : ""}
             <tr><td style="color:#666;font-size:13px;">Child</td><td style="color:#333;">${volunteer.childName} (${volunteer.grade}, ${volunteer.sport === "football" ? "Football" : "Cheer"})</td></tr>
           </table>
           <div style="background:#e8f5e9;border-left:4px solid #009A44;padding:16px;border-radius:4px;margin:16px 0;">
@@ -127,14 +128,18 @@ export async function sendConfirmationEmail(
 export async function sendAdminNewSignupEmail(
   volunteer: Volunteer,
   event: ConcessionEvent,
-  slot?: VolunteerSlot
+  slot?: VolunteerSlot,
+  recipients: string[] = []
 ) {
   const t = getTransporter();
   if (!t) return;
 
-  const adminEmail = process.env.ADMIN_EMAIL;
-  if (!adminEmail) {
-    console.warn("[Email] ADMIN_EMAIL not set — skipping admin notification");
+  const envAdmin = process.env.ADMIN_EMAIL;
+  const allRecipients = Array.from(
+    new Set([...recipients, ...(envAdmin ? [envAdmin] : [])].map((e) => e.trim()).filter(Boolean))
+  );
+  if (allRecipients.length === 0) {
+    console.warn("[Email] No admin recipients configured — skipping admin notification");
     return;
   }
 
@@ -163,6 +168,7 @@ export async function sendAdminNewSignupEmail(
             <tr><td style="color:#666;font-size:13px;width:40%;">Date</td><td style="color:#003087;font-weight:bold;">${dateStr}</td></tr>
             <tr><td style="color:#666;font-size:13px;">Role</td><td style="color:#003087;font-weight:bold;">${roleLabel}</td></tr>
             <tr><td style="color:#666;font-size:13px;">Time</td><td style="color:#003087;font-weight:bold;">${roleTime}</td></tr>
+            ${event.location ? `<tr><td style="color:#666;font-size:13px;">Location</td><td style="color:#003087;font-weight:bold;">${event.location}</td></tr>` : ""}
             <tr style="background:#e8eef7;"><td colspan="2" style="color:#003087;font-weight:bold;font-size:13px;padding:10px 8px;">Volunteer Info</td></tr>
             <tr><td style="color:#666;font-size:13px;">Parent Name</td><td style="color:#333;font-weight:bold;">${volunteer.parentName}</td></tr>
             <tr><td style="color:#666;font-size:13px;">Email</td><td style="color:#333;">${volunteer.email}</td></tr>
@@ -184,7 +190,7 @@ export async function sendAdminNewSignupEmail(
 
   await t.transporter.sendMail({
     from: t.from,
-    to: adminEmail,
+    to: allRecipients,
     subject: `🆕 New Volunteer: ${volunteer.parentName} – ${roleLabel} on ${dateStr}`,
     html,
   });
@@ -222,6 +228,7 @@ export async function sendReminderEmail(
             <tr><td style="color:#666;font-size:13px;width:40%;">Date</td><td style="color:#003087;font-weight:bold;">${dateStr}</td></tr>
             <tr><td style="color:#666;font-size:13px;">Role</td><td style="color:#003087;font-weight:bold;">${roleLabel}</td></tr>
             <tr><td style="color:#666;font-size:13px;">Shift Time</td><td style="color:#003087;font-weight:bold;">${roleTime}</td></tr>
+            ${event.location ? `<tr><td style="color:#666;font-size:13px;">Location</td><td style="color:#003087;font-weight:bold;">${event.location}</td></tr>` : ""}
             <tr><td style="color:#666;font-size:13px;">Arrive By</td><td style="color:#009A44;font-weight:bold;">${arriveTime} (10 min early)</td></tr>
           </table>
           <div style="background:#fff3e0;border-left:4px solid #f57c00;padding:16px;border-radius:4px;margin:16px 0;">

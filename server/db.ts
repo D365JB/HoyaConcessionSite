@@ -182,6 +182,17 @@ export async function listLocalAdminAccounts() {
     .orderBy(asc(users.name), asc(localAdminAccounts.email));
 }
 
+/** Emails of every active administrator, used to notify all admins of new signups. */
+export async function getActiveAdminEmails(): Promise<string[]> {
+  const db = await getDb();
+  if (!db) return [];
+  const rows = await db
+    .select({ email: localAdminAccounts.email })
+    .from(localAdminAccounts)
+    .where(eq(localAdminAccounts.isActive, true));
+  return rows.map((r) => r.email).filter((e): e is string => !!e);
+}
+
 export async function createLocalAdminAccount(input: { name: string; email: string; passwordHash: string }) {
   const db = await getDb();
   if (!db) throw new Error("DB unavailable");
@@ -264,10 +275,10 @@ export const STANDARD_SLOT_DEFINITIONS = [
   { role: "cashier" as const, count: 2 },
 ] as const;
 
-export async function createEvent(eventDate: string, season: string, label?: string) {
+export async function createEvent(eventDate: string, season: string, label?: string, location?: string) {
   const db = await getDb();
   if (!db) throw new Error("DB unavailable");
-  const [result] = await db.insert(concessionEvents).values({ eventDate: new Date(eventDate + "T12:00:00Z"), season, label, isActive: true });
+  const [result] = await db.insert(concessionEvents).values({ eventDate: new Date(eventDate + "T12:00:00Z"), season, label, location, isActive: true });
   const eventId = (result as any).insertId as number;
   // Create the 4 standard slots: Co-Cook, Kitchen Assistant, and two Cashiers.
   for (const { role, count } of STANDARD_SLOT_DEFINITIONS) {
@@ -278,11 +289,12 @@ export async function createEvent(eventDate: string, season: string, label?: str
   return eventId;
 }
 
-export async function updateEvent(id: number, data: { eventDate?: string; label?: string; isActive?: boolean }) {
+export async function updateEvent(id: number, data: { eventDate?: string; label?: string; location?: string; isActive?: boolean }) {
   const db = await getDb();
   if (!db) throw new Error("DB unavailable");
   const updateData: Record<string, unknown> = {};
   if (data.label !== undefined) updateData.label = data.label;
+  if (data.location !== undefined) updateData.location = data.location;
   if (data.isActive !== undefined) updateData.isActive = data.isActive;
   if (data.eventDate !== undefined) updateData.eventDate = new Date(data.eventDate + "T12:00:00Z");
   await db.update(concessionEvents).set(updateData as any).where(eq(concessionEvents.id, id));

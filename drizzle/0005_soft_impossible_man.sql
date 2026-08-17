@@ -1,0 +1,1 @@
+ALTER TABLE `concession_events` ADD `location` varchar(256);
