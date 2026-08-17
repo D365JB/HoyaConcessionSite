@@ -22,7 +22,7 @@
 - [x] Mobile-first responsive layout
 
 ## Phase 3: Admin Dashboard
-- [x] Admin login via Manus OAuth (role-based)
+- [x] Admin login via secure email-and-password authentication (role-based)
 - [x] Dashboard overview: today's volunteers, open positions, stats
 - [x] Volunteer list with search and filters
 - [x] Edit volunteer record
@@ -61,7 +61,7 @@
 ## Admin Hardening (July 27 update)
 - [x] ProtectedAdminRoute wrapper in App.tsx — all /admin/* routes redirect to login if not authenticated or not admin
 - [x] Backend adminProcedure middleware throws FORBIDDEN for non-admins on all admin tRPC procedures
-- [x] Admin login page with Manus OAuth sign-in flow
+- [x] Admin login page with local email-and-password sign-in flow
 - [x] Excel export (XLSX) wired in Volunteers page with client-side generation
 - [x] Search by name/email/phone + status filter on Volunteers page
 - [x] Today's Volunteers panel on Dashboard showing live data
@@ -70,3 +70,9 @@
 - [x] Add an admin-only Admin Access page that lists signed-in users and their current role
 - [x] Allow existing admins to promote eligible users to admin and revoke non-owner admin access safely
 - [x] Add role-management tests and verify the new page on desktop and mobile
+
+## Password-Based Admin Authentication
+- [x] Replace Manus OAuth login with secure email-and-password authentication
+- [x] Store password hashes securely and issue signed, HTTP-only admin sessions
+- [x] Update Admin Access so existing admins can create password-based administrator accounts
+- [x] Test login, logout, invalid-password, session, and authorization flows

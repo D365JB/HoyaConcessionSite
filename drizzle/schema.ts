@@ -28,6 +28,23 @@ export type User = typeof users.$inferSelect;
 export type InsertUser = typeof users.$inferInsert;
 
 /**
+ * Local credentials for password-based administrator login. Passwords are never
+ * stored directly: this table holds a salted password hash only.
+ */
+export const localAdminAccounts = mysqlTable("local_admin_accounts", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull().unique(),
+  email: varchar("email", { length: 320 }).notNull().unique(),
+  passwordHash: varchar("passwordHash", { length: 255 }).notNull(),
+  isActive: boolean("isActive").default(true).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type LocalAdminAccount = typeof localAdminAccounts.$inferSelect;
+export type InsertLocalAdminAccount = typeof localAdminAccounts.$inferInsert;
+
+/**
  * Concession event dates (each game night)
  */
 export const concessionEvents = mysqlTable("concession_events", {

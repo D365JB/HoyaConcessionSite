@@ -1,6 +1,5 @@
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
-import { COOKIE_NAME } from "@shared/const";
 import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
 import { protectedProcedure, publicProcedure, router } from "./_core/trpc";
@@ -27,9 +26,10 @@ import {
   listCronJobs,
 } from "./db";
 import { getSlotById } from "./db";
-import { listUsersForAdmin, updateUserRoleById } from "./db";
+import { createLocalAdminAccount, deactivateLocalAdminAccount, getLocalAdminAccountByEmail, listLocalAdminAccounts } from "./db";
 import { sendConfirmationEmail, sendReminderEmail, sendAdminNewSignupEmail } from "./email";
 import { createHeartbeatJob, deleteHeartbeatJob } from "./_core/heartbeat";
+import { createLocalAdminSession, ensureBootstrapLocalAdmin, getLocalSessionMaxAgeMs, hashPassword, LOCAL_ADMIN_COOKIE, verifyPassword } from "./localAuth";
 
 // Admin-only middleware
 const adminProcedure = protectedProcedure.use(({ ctx, next }) => {
@@ -39,14 +39,31 @@ const adminProcedure = protectedProcedure.use(({ ctx, next }) => {
   return next({ ctx });
 });
 
+function safeUser(user: { id: number; openId: string; name: string | null; email: string | null; loginMethod: string | null; role: "user" | "admin"; createdAt: Date; updatedAt: Date; lastSignedIn: Date }) {
+  return { ...user };
+}
+
 export const appRouter = router({
   system: systemRouter,
 
   auth: router({
-    me: publicProcedure.query((opts) => opts.ctx.user),
+    me: publicProcedure.query((opts) => (opts.ctx.user ? safeUser(opts.ctx.user) : null)),
+    login: publicProcedure
+      .input(z.object({ email: z.string().email(), password: z.string().min(1).max(256) }))
+      .mutation(async ({ input, ctx }) => {
+        await ensureBootstrapLocalAdmin();
+        const result = await getLocalAdminAccountByEmail(input.email);
+        if (!result?.account.isActive || result.user.role !== "admin" || !(await verifyPassword(input.password, result.account.passwordHash))) {
+          throw new TRPCError({ code: "UNAUTHORIZED", message: "Invalid email or password." });
+        }
+        const token = await createLocalAdminSession(result.user.id);
+        const cookieOptions = getSessionCookieOptions(ctx.req);
+        ctx.res.cookie(LOCAL_ADMIN_COOKIE, token, { ...cookieOptions, maxAge: getLocalSessionMaxAgeMs() });
+        return safeUser(result.user);
+      }),
     logout: publicProcedure.mutation(({ ctx }) => {
       const cookieOptions = getSessionCookieOptions(ctx.req);
-      ctx.res.clearCookie(COOKIE_NAME, { ...cookieOptions, maxAge: -1 });
+      ctx.res.clearCookie(LOCAL_ADMIN_COOKIE, { ...cookieOptions, maxAge: -1 });
       return { success: true } as const;
     }),
   }),
@@ -252,25 +269,35 @@ export const appRouter = router({
   // ─── Admin: Access Management ───────────────────────────────────────────────
   adminAccess: router({
     listUsers: adminProcedure.query(async () => {
-      return listUsersForAdmin();
+      return listLocalAdminAccounts();
     }),
 
-    setRole: adminProcedure
-      .input(z.object({ id: z.number(), role: z.enum(["user", "admin"]) }))
+    create: adminProcedure
+      .input(z.object({ name: z.string().trim().min(2).max(128), email: z.string().email(), password: z.string().min(12).max(256) }))
       .mutation(async ({ input, ctx }) => {
-        if (input.id === ctx.user.id && input.role === "user") {
-          throw new TRPCError({
-            code: "BAD_REQUEST",
-            message: "You cannot remove your own administrator access.",
-          });
-        }
-
         try {
-          return await updateUserRoleById(input.id, input.role);
+          return await createLocalAdminAccount({ name: input.name, email: input.email, passwordHash: await hashPassword(input.password) });
         } catch (error) {
           throw new TRPCError({
             code: "BAD_REQUEST",
-            message: error instanceof Error ? error.message : "Unable to update administrator access.",
+            message: error instanceof Error ? error.message : "Unable to create the administrator account.",
+          });
+        }
+      }),
+
+    deactivate: adminProcedure
+      .input(z.object({ id: z.number(), userId: z.number() }))
+      .mutation(async ({ input, ctx }) => {
+        if (input.userId === ctx.user.id) {
+          throw new TRPCError({ code: "BAD_REQUEST", message: "You cannot remove your own administrator access." });
+        }
+        try {
+          await deactivateLocalAdminAccount(input.id);
+          return { success: true };
+        } catch (error) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: error instanceof Error ? error.message : "Unable to remove administrator access.",
           });
         }
       }),

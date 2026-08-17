@@ -19,7 +19,6 @@ import {
   SidebarTrigger,
   useSidebar,
 } from "@/components/ui/sidebar";
-import { startLogin } from "@/const";
 import { useIsMobile } from "@/hooks/useMobile";
 import { LayoutDashboard, LogOut, Users, Calendar, ExternalLink, PanelLeft, ShieldCheck } from "lucide-react";
 import { CSSProperties, useEffect, useRef, useState } from "react";
@@ -62,7 +61,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             <h1 className="text-xl font-bold" style={{ color: "#003087" }}>Admin Access Required</h1>
             <p className="text-sm text-gray-500 mt-2">Sign in to access the Hoyas Concession admin dashboard.</p>
           </div>
-          <Button onClick={() => startLogin()} className="w-full text-white" style={{ backgroundColor: "#003087" }}>
+          <Button onClick={() => { window.location.href = "/admin"; }} className="w-full text-white" style={{ backgroundColor: "#003087" }}>
             Sign In
           </Button>
         </div>

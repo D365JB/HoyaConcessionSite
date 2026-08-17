@@ -1,7 +1,7 @@
 import { describe, expect, it, beforeEach, vi } from "vitest";
 import { appRouter } from "./routers";
 import type { TrpcContext } from "./_core/context";
-import { listUsersForAdmin, updateUserRoleById } from "./db";
+import { createLocalAdminAccount, listLocalAdminAccounts } from "./db";
 
 // ─── Mock DB helpers ──────────────────────────────────────────────────────────
 vi.mock("./db", async (importOriginal) => {
@@ -54,11 +54,12 @@ vi.mock("./db", async (importOriginal) => {
     listCronJobs: vi.fn().mockResolvedValue([]),
     getCronJob: vi.fn().mockResolvedValue(undefined),
     upsertCronJob: vi.fn().mockResolvedValue(undefined),
-    listUsersForAdmin: vi.fn().mockResolvedValue([
-      { id: 1, openId: "admin-openid", name: "Admin User", email: "admin@hoyas.org", role: "admin", createdAt: new Date(), lastSignedIn: new Date() },
-      { id: 2, openId: "user-openid", name: "Regular User", email: "user@example.com", role: "user", createdAt: new Date(), lastSignedIn: new Date() },
+    listLocalAdminAccounts: vi.fn().mockResolvedValue([
+      { id: 1, userId: 1, name: "Admin User", email: "admin@hoyas.org", role: "admin", isActive: true, createdAt: new Date(), lastSignedIn: new Date() },
+      { id: 2, userId: 2, name: "Regular User", email: "user@example.com", role: "admin", isActive: true, createdAt: new Date(), lastSignedIn: new Date() },
     ]),
-    updateUserRoleById: vi.fn().mockImplementation(async (id: number, role: "user" | "admin") => ({ id, role })),
+    createLocalAdminAccount: vi.fn().mockImplementation(async ({ email }: { email: string }) => ({ id: 2, userId: 2, email })),
+    deactivateLocalAdminAccount: vi.fn().mockResolvedValue(undefined),
   };
 });
 
@@ -277,17 +278,17 @@ describe("adminAccess (admin only)", () => {
     const caller = appRouter.createCaller(makeAdminCtx());
     const result = await caller.adminAccess.listUsers();
     expect(result).toHaveLength(2);
-    expect(vi.mocked(listUsersForAdmin)).toHaveBeenCalled();
+    expect(vi.mocked(listLocalAdminAccounts)).toHaveBeenCalled();
   });
 
-  it("allows an admin to promote another signed-in user", async () => {
+  it("allows an admin to create another password-based admin account", async () => {
     const caller = appRouter.createCaller(makeAdminCtx());
-    await expect(caller.adminAccess.setRole({ id: 2, role: "admin" })).resolves.toEqual({ id: 2, role: "admin" });
-    expect(vi.mocked(updateUserRoleById)).toHaveBeenCalledWith(2, "admin");
+    await expect(caller.adminAccess.create({ name: "New Admin", email: "newadmin@example.com", password: "A secure test password" })).resolves.toEqual({ id: 2, userId: 2, email: "newadmin@example.com" });
+    expect(vi.mocked(createLocalAdminAccount)).toHaveBeenCalledWith(expect.objectContaining({ name: "New Admin", email: "newadmin@example.com", passwordHash: expect.stringMatching(/^scrypt\$/) }));
   });
 
   it("prevents an admin from removing their own access", async () => {
     const caller = appRouter.createCaller(makeAdminCtx());
-    await expect(caller.adminAccess.setRole({ id: 1, role: "user" })).rejects.toMatchObject({ code: "BAD_REQUEST" });
+    await expect(caller.adminAccess.deactivate({ id: 1, userId: 1 })).rejects.toMatchObject({ code: "BAD_REQUEST" });
   });
 });

@@ -1,13 +1,15 @@
-import { useMemo, useState } from "react";
+import { FormEvent, useMemo, useState } from "react";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { trpc } from "@/lib/trpc";
 import DashboardLayout from "@/components/DashboardLayout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { Loader2, Search, ShieldCheck, UserCog, UserRoundPlus, UsersRound } from "lucide-react";
+import { Loader2, LockKeyhole, Plus, Search, ShieldCheck, UserCog, UsersRound } from "lucide-react";
 
 function formatLastSignedIn(value: Date | string | null) {
   if (!value) return "Never";
@@ -15,149 +17,115 @@ function formatLastSignedIn(value: Date | string | null) {
   return date.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
 }
 
+const EMPTY_FORM = { name: "", email: "", password: "" };
+
 export default function AdminAccess() {
   const { user } = useAuth();
   const [search, setSearch] = useState("");
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [form, setForm] = useState(EMPTY_FORM);
   const utils = trpc.useUtils();
-  const { data: users, isLoading } = trpc.adminAccess.listUsers.useQuery(undefined, {
+  const { data: accounts, isLoading } = trpc.adminAccess.listUsers.useQuery(undefined, {
     enabled: !!user && user.role === "admin",
   });
 
-  const setRole = trpc.adminAccess.setRole.useMutation({
-    onSuccess: (_result, input) => {
+  const createAdmin = trpc.adminAccess.create.useMutation({
+    onSuccess: () => {
       utils.adminAccess.listUsers.invalidate();
-      toast.success(input.role === "admin" ? "Administrator access granted." : "Administrator access removed.");
+      setForm(EMPTY_FORM);
+      setDialogOpen(false);
+      toast.success("Administrator account created.");
     },
     onError: (error) => toast.error(error.message),
   });
 
-  const filteredUsers = useMemo(() => {
+  const deactivateAdmin = trpc.adminAccess.deactivate.useMutation({
+    onSuccess: () => {
+      utils.adminAccess.listUsers.invalidate();
+      toast.success("Administrator access removed.");
+    },
+    onError: (error) => toast.error(error.message),
+  });
+
+  const filteredAccounts = useMemo(() => {
     const term = search.trim().toLowerCase();
-    if (!term) return users ?? [];
-    return (users ?? []).filter((account) =>
-      [account.name, account.email].some((value) => value?.toLowerCase().includes(term))
-    );
-  }, [search, users]);
+    if (!term) return accounts ?? [];
+    return (accounts ?? []).filter((account) => [account.name, account.email].some((value) => value?.toLowerCase().includes(term)));
+  }, [accounts, search]);
 
-  const admins = (users ?? []).filter((account) => account.role === "admin").length;
+  const activeAdmins = (accounts ?? []).filter((account) => account.isActive).length;
 
-  const requestRoleChange = (account: NonNullable<typeof users>[number], nextRole: "user" | "admin") => {
-    const action = nextRole === "admin" ? "grant administrator access to" : "remove administrator access from";
-    const label = account.name || account.email || "this account";
-    if (!window.confirm(`Are you sure you want to ${action} ${label}?`)) return;
-    setRole.mutate({ id: account.id, role: nextRole });
+  const handleCreate = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (form.password.length < 12) {
+      toast.error("Use a password with at least 12 characters.");
+      return;
+    }
+    createAdmin.mutate(form);
+  };
+
+  const confirmDeactivate = (account: NonNullable<typeof accounts>[number]) => {
+    const label = account.name || account.email;
+    if (!window.confirm(`Remove administrator access for ${label}? They will no longer be able to sign in.`)) return;
+    deactivateAdmin.mutate({ id: account.id, userId: account.userId });
   };
 
   return (
     <DashboardLayout>
       <div className="mx-auto max-w-5xl space-y-5">
-        <section className="rounded-2xl p-5 sm:p-6 text-white shadow-sm" style={{ background: "linear-gradient(135deg, #003087 0%, #002060 100%)" }}>
+        <section className="rounded-2xl p-5 text-white shadow-sm sm:p-6" style={{ background: "linear-gradient(135deg, #003087 0%, #002060 100%)" }}>
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <div className="mb-2 flex items-center gap-2 text-sm font-semibold" style={{ color: "#75e59c" }}>
-                <ShieldCheck className="h-4 w-4" /> Secure administration
-              </div>
+              <div className="mb-2 flex items-center gap-2 text-sm font-semibold" style={{ color: "#75e59c" }}><ShieldCheck className="h-4 w-4" /> Secure administration</div>
               <h1 className="text-2xl font-black tracking-tight">Admin Access</h1>
-              <p className="mt-2 max-w-2xl text-sm leading-6 text-white/75">
-                Grant dashboard access to people who have already signed in with their Manus account. Only current administrators can manage this list.
-              </p>
+              <p className="mt-2 max-w-2xl text-sm leading-6 text-white/75">Create and manage password-protected accounts for the Hoyas Concession dashboard.</p>
             </div>
-            <div className="rounded-xl bg-white/10 px-4 py-3 text-left sm:text-center">
-              <p className="text-2xl font-black">{admins}</p>
-              <p className="text-xs font-medium text-white/70">Active admins</p>
-            </div>
+            <div className="rounded-xl bg-white/10 px-4 py-3 sm:text-center"><p className="text-2xl font-black">{activeAdmins}</p><p className="text-xs font-medium text-white/70">Active admins</p></div>
           </div>
         </section>
 
         <Card className="border-0 shadow-sm">
-          <CardHeader className="pb-3">
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-              <div>
-                <CardTitle className="flex items-center gap-2" style={{ color: "#003087" }}>
-                  <UserRoundPlus className="h-5 w-5" /> Create a new admin
-                </CardTitle>
-                <CardDescription className="mt-1.5 max-w-2xl leading-5">
-                  Have the person sign in through the <strong>Admin</strong> link once. Their account will appear below, where you can select <strong>Make Admin</strong>.
-                </CardDescription>
-              </div>
-              <a href="/admin" className="text-sm font-semibold hover:underline" style={{ color: "#009A44" }}>Open sign-in page</a>
+          <CardHeader className="flex flex-col gap-3 pb-3 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <CardTitle className="flex items-center gap-2" style={{ color: "#003087" }}><LockKeyhole className="h-5 w-5" /> Password-based administrator accounts</CardTitle>
+              <CardDescription className="mt-1.5 max-w-2xl leading-5">Passwords are stored as secure hashes only. New admins can sign in immediately with the email and password you create.</CardDescription>
             </div>
+            <Button onClick={() => setDialogOpen(true)} className="w-full text-white sm:w-auto" style={{ backgroundColor: "#009A44" }}><Plus className="mr-2 h-4 w-4" /> Create Admin</Button>
           </CardHeader>
         </Card>
 
         <Card className="border-0 shadow-sm">
           <CardHeader className="space-y-3 pb-3">
-            <div className="flex items-center gap-2">
-              <UsersRound className="h-5 w-5" style={{ color: "#003087" }} />
-              <CardTitle style={{ color: "#003087" }}>Signed-in accounts</CardTitle>
-            </div>
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
-              <Input value={search} onChange={(event) => setSearch(event.target.value)} className="pl-9" placeholder="Search by name or email…" />
-            </div>
+            <CardTitle className="flex items-center gap-2" style={{ color: "#003087" }}><UsersRound className="h-5 w-5" /> Administrator accounts</CardTitle>
+            <div className="relative"><Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" /><Input value={search} onChange={(event) => setSearch(event.target.value)} className="pl-9" placeholder="Search by name or email…" /></div>
           </CardHeader>
           <CardContent>
-            {isLoading ? (
-              <div className="space-y-3">{[1, 2, 3].map((key) => <div key={key} className="h-20 animate-pulse rounded-xl bg-gray-100" />)}</div>
-            ) : filteredUsers.length ? (
+            {isLoading ? <div className="space-y-3">{[1, 2, 3].map((key) => <div key={key} className="h-20 animate-pulse rounded-xl bg-gray-100" />)}</div> : filteredAccounts.length ? (
               <div className="space-y-2">
-                {filteredUsers.map((account) => {
-                  const isCurrentUser = account.id === user?.id;
-                  const isAdmin = account.role === "admin";
-                  const isProtectedAdmin = isCurrentUser || account.isOwner;
-                  return (
-                    <div key={account.id} className="flex flex-col gap-3 rounded-xl border border-gray-100 bg-white p-4 sm:flex-row sm:items-center sm:justify-between">
-                      <div className="min-w-0">
-                        <div className="flex flex-wrap items-center gap-2">
-                          <p className="truncate font-bold text-gray-900">{account.name || "Unnamed account"}</p>
-                          <Badge className="border-0" style={{ backgroundColor: isAdmin ? "#e6f5ec" : "#eef2f7", color: isAdmin ? "#007a35" : "#52606d" }}>
-                            {isAdmin ? "Admin" : "User"}
-                          </Badge>
-                          {isCurrentUser && <span className="text-xs font-medium text-gray-400">You</span>}
-                          {account.isOwner && <span className="text-xs font-medium text-gray-400">Project owner</span>}
-                        </div>
-                        <p className="mt-1 truncate text-sm text-gray-500">{account.email || "No email available"}</p>
-                        <p className="mt-1 text-xs text-gray-400">Last signed in: {formatLastSignedIn(account.lastSignedIn)}</p>
-                      </div>
-                      {isAdmin ? (
-                        isProtectedAdmin ? (
-                          <span className="inline-flex w-full items-center justify-center rounded-md border border-gray-200 px-3 py-2 text-sm font-medium text-gray-400 sm:w-auto">
-                            <ShieldCheck className="mr-2 h-4 w-4" /> Protected Admin
-                          </span>
-                        ) : (
-                          <Button
-                            variant="outline"
-                            className="w-full border-red-200 text-red-600 hover:bg-red-50 sm:w-auto"
-                            disabled={setRole.isPending}
-                            onClick={() => requestRoleChange(account, "user")}
-                          >
-                            <UserCog className="mr-2 h-4 w-4" /> Remove Admin
-                          </Button>
-                        )
-                      ) : (
-                        <Button
-                          className="w-full text-white sm:w-auto"
-                          style={{ backgroundColor: "#009A44" }}
-                          disabled={setRole.isPending}
-                          onClick={() => requestRoleChange(account, "admin")}
-                        >
-                          <ShieldCheck className="mr-2 h-4 w-4" /> Make Admin
-                        </Button>
-                      )}
-                    </div>
-                  );
+                {filteredAccounts.map((account) => {
+                  const isCurrentUser = account.userId === user?.id;
+                  return <div key={account.id} className="flex flex-col gap-3 rounded-xl border border-gray-100 bg-white p-4 sm:flex-row sm:items-center sm:justify-between">
+                    <div className="min-w-0"><div className="flex flex-wrap items-center gap-2"><p className="truncate font-bold text-gray-900">{account.name || "Unnamed account"}</p><Badge className="border-0" style={{ backgroundColor: account.isActive ? "#e6f5ec" : "#f3f4f6", color: account.isActive ? "#007a35" : "#6b7280" }}>{account.isActive ? "Admin" : "Removed"}</Badge>{isCurrentUser && <span className="text-xs font-medium text-gray-400">You</span>}</div><p className="mt-1 truncate text-sm text-gray-500">{account.email}</p><p className="mt-1 text-xs text-gray-400">Last signed in: {formatLastSignedIn(account.lastSignedIn)}</p></div>
+                    {account.isActive && (isCurrentUser ? <span className="inline-flex w-full items-center justify-center rounded-md border border-gray-200 px-3 py-2 text-sm font-medium text-gray-400 sm:w-auto"><ShieldCheck className="mr-2 h-4 w-4" /> Your Admin Account</span> : <Button variant="outline" className="w-full border-red-200 text-red-600 hover:bg-red-50 sm:w-auto" disabled={deactivateAdmin.isPending} onClick={() => confirmDeactivate(account)}><UserCog className="mr-2 h-4 w-4" /> Remove Admin</Button>)}
+                  </div>;
                 })}
               </div>
-            ) : (
-              <div className="py-12 text-center text-gray-400">
-                <UsersRound className="mx-auto mb-3 h-10 w-10 opacity-30" />
-                <p className="font-medium">No signed-in accounts found</p>
-                <p className="mt-1 text-sm">New administrators must sign in once before they can be promoted.</p>
-              </div>
-            )}
+            ) : <div className="py-12 text-center text-gray-400"><UsersRound className="mx-auto mb-3 h-10 w-10 opacity-30" /><p className="font-medium">No administrator accounts found</p></div>}
           </CardContent>
         </Card>
       </div>
+
+      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader><DialogTitle style={{ color: "#003087" }}>Create administrator</DialogTitle><DialogDescription>Give the new administrator a secure password with at least 12 characters.</DialogDescription></DialogHeader>
+          <form onSubmit={handleCreate} className="space-y-4 pt-2">
+            <div className="space-y-1.5"><Label htmlFor="admin-name">Name</Label><Input id="admin-name" required value={form.name} onChange={(event) => setForm({ ...form, name: event.target.value })} /></div>
+            <div className="space-y-1.5"><Label htmlFor="admin-email">Email</Label><Input id="admin-email" type="email" required value={form.email} onChange={(event) => setForm({ ...form, email: event.target.value })} /></div>
+            <div className="space-y-1.5"><Label htmlFor="admin-password">Temporary password</Label><Input id="admin-password" type="password" minLength={12} required autoComplete="new-password" value={form.password} onChange={(event) => setForm({ ...form, password: event.target.value })} /><p className="text-xs text-gray-500">Use at least 12 characters. Share it securely with the new administrator.</p></div>
+            <Button type="submit" className="w-full text-white" style={{ backgroundColor: "#009A44" }} disabled={createAdmin.isPending}>{createAdmin.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Create Admin</Button>
+          </form>
+        </DialogContent>
+      </Dialog>
     </DashboardLayout>
   );
 }

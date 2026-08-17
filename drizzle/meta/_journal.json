@@ -22,6 +22,13 @@
       "when": 1785161512217,
       "tag": "0002_legal_peter_parker",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "5",
+      "when": 1786978888713,
+      "tag": "0003_illegal_gunslinger",
+      "breakpoints": true
     }
   ]
 }

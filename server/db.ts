@@ -1,6 +1,6 @@
 import { and, asc, desc, eq, gte, lte, ne, or, sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
-import { concessionEvents, cronJobs, InsertUser, users, volunteerSlots, volunteers } from "../drizzle/schema";
+import { concessionEvents, cronJobs, InsertUser, localAdminAccounts, users, volunteerSlots, volunteers } from "../drizzle/schema";
 import { ENV } from "./_core/env";
 
 let _db: ReturnType<typeof drizzle> | null = null;
@@ -97,6 +97,110 @@ export async function updateUserRoleById(userId: number, role: "user" | "admin")
 
   await db.update(users).set({ role }).where(eq(users.id, userId));
   return { id: target.id, role };
+}
+
+// ─── Local Password Admin Accounts ────────────────────────────────────────────
+
+const normalizeEmail = (email: string) => email.trim().toLowerCase();
+
+export async function getLocalAdminAccountByEmail(email: string) {
+  const db = await getDb();
+  if (!db) return undefined;
+  const [result] = await db
+    .select({ account: localAdminAccounts, user: users })
+    .from(localAdminAccounts)
+    .innerJoin(users, eq(localAdminAccounts.userId, users.id))
+    .where(eq(localAdminAccounts.email, normalizeEmail(email)))
+    .limit(1);
+  return result;
+}
+
+export async function getLocalAdminUserById(userId: number) {
+  const db = await getDb();
+  if (!db) return undefined;
+  const [result] = await db
+    .select({ user: users })
+    .from(localAdminAccounts)
+    .innerJoin(users, eq(localAdminAccounts.userId, users.id))
+    .where(and(eq(localAdminAccounts.userId, userId), eq(localAdminAccounts.isActive, true)))
+    .limit(1);
+  return result?.user;
+}
+
+export async function countActiveLocalAdminAccounts() {
+  const db = await getDb();
+  if (!db) return 0;
+  const [result] = await db
+    .select({ count: sql<number>`count(*)` })
+    .from(localAdminAccounts)
+    .where(eq(localAdminAccounts.isActive, true));
+  return Number(result?.count ?? 0);
+}
+
+export async function listLocalAdminAccounts() {
+  const db = await getDb();
+  if (!db) return [];
+  return db
+    .select({
+      id: localAdminAccounts.id,
+      userId: users.id,
+      name: users.name,
+      email: localAdminAccounts.email,
+      role: users.role,
+      isActive: localAdminAccounts.isActive,
+      createdAt: localAdminAccounts.createdAt,
+      lastSignedIn: users.lastSignedIn,
+    })
+    .from(localAdminAccounts)
+    .innerJoin(users, eq(localAdminAccounts.userId, users.id))
+    .orderBy(asc(users.name), asc(localAdminAccounts.email));
+}
+
+export async function createLocalAdminAccount(input: { name: string; email: string; passwordHash: string }) {
+  const db = await getDb();
+  if (!db) throw new Error("DB unavailable");
+
+  const email = normalizeEmail(input.email);
+  const existingAccount = await getLocalAdminAccountByEmail(email);
+  if (existingAccount) throw new Error("An administrator account already uses this email address");
+
+  const [existingUser] = await db.select().from(users).where(eq(users.email, email)).limit(1);
+  let userId: number;
+
+  if (existingUser) {
+    userId = existingUser.id;
+    await db.update(users).set({ name: input.name, role: "admin", loginMethod: "password" }).where(eq(users.id, userId));
+  } else {
+    const [insertResult] = await db.insert(users).values({
+      openId: `local:${crypto.randomUUID()}`,
+      name: input.name,
+      email,
+      loginMethod: "password",
+      role: "admin",
+      lastSignedIn: new Date(),
+    });
+    userId = Number((insertResult as any).insertId);
+  }
+
+  const [accountResult] = await db.insert(localAdminAccounts).values({ userId, email, passwordHash: input.passwordHash, isActive: true });
+  return { id: Number((accountResult as any).insertId), userId, email };
+}
+
+export async function updateLocalAdminPassword(accountId: number, passwordHash: string) {
+  const db = await getDb();
+  if (!db) throw new Error("DB unavailable");
+  await db.update(localAdminAccounts).set({ passwordHash }).where(eq(localAdminAccounts.id, accountId));
+}
+
+export async function deactivateLocalAdminAccount(accountId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("DB unavailable");
+  const [account] = await db.select().from(localAdminAccounts).where(eq(localAdminAccounts.id, accountId)).limit(1);
+  if (!account) throw new Error("Administrator account not found");
+  if (!account.isActive) return;
+  if (await countActiveLocalAdminAccounts() <= 1) throw new Error("At least one active administrator account is required");
+  await db.update(localAdminAccounts).set({ isActive: false }).where(eq(localAdminAccounts.id, accountId));
+  await db.update(users).set({ role: "user" }).where(eq(users.id, account.userId));
 }
 
 // ─── Concession Events ────────────────────────────────────────────────────────
