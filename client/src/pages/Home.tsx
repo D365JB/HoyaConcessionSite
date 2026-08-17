@@ -445,7 +445,7 @@ export default function Home() {
             Volunteer at the Concession Stand
           </h2>
           <p className="text-white/80 text-base sm:text-lg max-w-xl mx-auto mb-6">
-            Support our Hoyas athletes by volunteering at game night. Choose a date and role below to sign up.
+            Support our Hoya athletes by volunteering for concession stand duties. Choose a date and role below to sign up.
           </p>
           <div className="flex flex-wrap justify-center gap-4 text-sm">
             {[

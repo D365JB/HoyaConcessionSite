@@ -80,3 +80,6 @@
 ## Volunteer Roles
 - [x] Remove Runner from all concession event slots and seed definitions
 - [x] Update public signup, admin displays, exports, and tests to reflect the remaining roles
+
+## Public Page Copy
+- [x] Update the volunteer invitation text to the requested concession-duty wording
