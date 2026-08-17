@@ -89,3 +89,8 @@
 - [x] Create a Workers + Hyperdrive package that preserves the existing MySQL schema and data model for import into a user-controlled MySQL database
 - [x] Add secure Cloudflare environment templates, cron configuration, and deployment instructions
 - [x] Validate the deployment package and hand off the Cloudflare-ready archive
+
+## GitHub Export
+- [ ] Verify the GitHub destination and export connection
+- [ ] Create a GitHub repository and push the current project source
+- [ ] Verify the remote repository and provide its link
