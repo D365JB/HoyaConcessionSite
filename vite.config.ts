@@ -150,7 +150,13 @@ function vitePluginManusDebugCollector(): Plugin {
   };
 }
 
-const plugins = [react(), tailwindcss(), jsxLocPlugin(), vitePluginManusRuntime(), vitePluginManusDebugCollector()];
+const isCloudflareBuild = process.env.VITE_DEPLOYMENT_TARGET === "cloudflare";
+const plugins = [
+  react(),
+  tailwindcss(),
+  jsxLocPlugin(),
+  ...(isCloudflareBuild ? [] : [vitePluginManusRuntime(), vitePluginManusDebugCollector()]),
+];
 
 export default defineConfig({
   plugins,

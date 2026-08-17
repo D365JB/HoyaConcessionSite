@@ -1,0 +1,28 @@
+{
+  "$schema": "../node_modules/wrangler/config-schema.json",
+  "name": "hoyas-concession",
+  "main": "../server/cloudflareWorker.ts",
+  "compatibility_date": "2026-08-17",
+  "compatibility_flags": ["nodejs_compat"],
+  "vars": {
+    "CLOUDFLARE_WORKER": "true"
+  },
+  "observability": { "enabled": true },
+  "assets": {
+    "directory": "../dist/public",
+    "binding": "ASSETS",
+    "not_found_handling": "single-page-application",
+    "run_worker_first": ["/api/*"]
+  },
+  "hyperdrive": [
+    {
+      "binding": "HYPERDRIVE",
+      "id": "REPLACE_WITH_YOUR_HYPERDRIVE_ID",
+      "localConnectionString": "REPLACE_WITH_A_LOCAL_MYSQL_CONNECTION_STRING"
+    }
+  ],
+  "send_email": [{ "name": "EMAIL" }],
+  "triggers": {
+    "crons": ["30 12,13 * * *"]
+  }
+}

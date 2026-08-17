@@ -1,6 +1,19 @@
 import nodemailer from "nodemailer";
 import type { Volunteer, ConcessionEvent, VolunteerSlot } from "../drizzle/schema";
 
+type WorkerEmailBinding = {
+  send(message: { to: string; from: string; subject: string; html: string; text?: string }): Promise<void>;
+};
+
+let workerEmail: WorkerEmailBinding | null = null;
+let workerEmailFrom: string | null = null;
+
+/** Configure the native Cloudflare Email binding for Worker deployments. */
+export function configureWorkerEmail(binding: WorkerEmailBinding, from: string) {
+  workerEmail = binding;
+  workerEmailFrom = from;
+}
+
 const ROLE_LABELS: Record<string, string> = {
   co_cook: "Co-Cook",
   kitchen_assistant: "Kitchen Assistant",
@@ -14,6 +27,15 @@ const ROLE_TIMES: Record<string, string> = {
 };
 
 function getTransporter() {
+  if (workerEmail && workerEmailFrom) {
+    return {
+      transporter: {
+        sendMail: async (message: { to: string; subject: string; html: string }) =>
+          workerEmail!.send({ to: message.to, from: workerEmailFrom!, subject: message.subject, html: message.html }),
+      },
+      from: workerEmailFrom,
+    };
+  }
   const host = process.env.SMTP_HOST;
   const user = process.env.SMTP_USER;
   const pass = process.env.SMTP_PASS;

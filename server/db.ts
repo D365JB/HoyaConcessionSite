@@ -1,11 +1,37 @@
 import { and, asc, desc, eq, gte, lte, ne, or, sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
+import { createConnection } from "mysql2/promise";
 import { concessionEvents, cronJobs, InsertUser, localAdminAccounts, users, volunteerSlots, volunteers } from "../drizzle/schema";
 import { ENV } from "./_core/env";
 
 let _db: ReturnType<typeof drizzle> | null = null;
+type HyperdriveBinding = { host: string; user: string; password: string; database: string; port: number };
+let hyperdriveBinding: HyperdriveBinding | null = null;
+
+/** Configure the database adapter for the Cloudflare Worker runtime. */
+export function configureHyperdrive(binding: HyperdriveBinding) {
+  hyperdriveBinding = binding;
+  _db = null;
+}
 
 export async function getDb() {
+  if (hyperdriveBinding) {
+    try {
+      const connection = await createConnection({
+        host: hyperdriveBinding.host,
+        user: hyperdriveBinding.user,
+        password: hyperdriveBinding.password,
+        database: hyperdriveBinding.database,
+        port: hyperdriveBinding.port,
+        // Required by mysql2 when it is run within Cloudflare Workers.
+        disableEval: true,
+      });
+      return drizzle(connection);
+    } catch (error) {
+      console.warn("[Database] Hyperdrive connection failed:", error);
+      return null;
+    }
+  }
   if (!_db && process.env.DATABASE_URL) {
     try {
       _db = drizzle(process.env.DATABASE_URL);

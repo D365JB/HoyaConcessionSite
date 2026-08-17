@@ -39,6 +39,8 @@ const adminProcedure = protectedProcedure.use(({ ctx, next }) => {
   return next({ ctx });
 });
 
+const isCloudflareWorkerRuntime = () => process.env.CLOUDFLARE_WORKER === "true";
+
 function safeUser(user: { id: number; openId: string; name: string | null; email: string | null; loginMethod: string | null; role: "user" | "admin"; createdAt: Date; updatedAt: Date; lastSignedIn: Date }) {
   return { ...user };
 }
@@ -231,10 +233,23 @@ export const appRouter = router({
   // ─── Admin: Cron / Heartbeat Management ──────────────────────────────────────
   cron: router({
     list: adminProcedure.query(async () => {
+      if (isCloudflareWorkerRuntime()) {
+        return [{
+          id: 0,
+          name: "morning-reminders",
+          taskUid: "cloudflare-cron",
+          description: "Morning reminder emails are managed by the Cloudflare Worker Cron Trigger.",
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        }];
+      }
       return listCronJobs();
     }),
 
     setupMorningReminder: adminProcedure.mutation(async ({ ctx }) => {
+      if (isCloudflareWorkerRuntime()) {
+        return { taskUid: "cloudflare-cron", alreadyExists: true };
+      }
       const existing = await getCronJob("morning-reminders");
       if (existing?.taskUid) {
         return { taskUid: existing.taskUid, alreadyExists: true };
@@ -255,6 +270,12 @@ export const appRouter = router({
     }),
 
     deleteMorningReminder: adminProcedure.mutation(async ({ ctx }) => {
+      if (isCloudflareWorkerRuntime()) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "Morning reminders are managed through Cloudflare Worker Cron Triggers in this deployment.",
+        });
+      }
       const existing = await getCronJob("morning-reminders");
       if (!existing?.taskUid) {
         return { success: true, message: "No active cron job found" };

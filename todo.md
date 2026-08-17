@@ -83,3 +83,9 @@
 
 ## Public Page Copy
 - [x] Update the volunteer invitation text to the requested concession-duty wording
+
+## Cloudflare Deployment Package
+- [x] Assess Cloudflare compatibility for the full-stack application and external services
+- [x] Create a Workers + Hyperdrive package that preserves the existing MySQL schema and data model for import into a user-controlled MySQL database
+- [x] Add secure Cloudflare environment templates, cron configuration, and deployment instructions
+- [x] Validate the deployment package and hand off the Cloudflare-ready archive
