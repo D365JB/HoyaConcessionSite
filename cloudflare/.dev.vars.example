@@ -1,0 +1,22 @@
+# Local development secrets for `wrangler dev`.
+# Copy this file to `.dev.vars` (same folder) and fill in real values.
+# NEVER commit the real `.dev.vars` — it holds secrets.
+# In production, set these with `wrangler secret put <NAME>` or in the
+# Cloudflare dashboard (Workers & Pages -> hoyas-concession -> Settings -> Variables and Secrets).
+
+# Session / cookie signing secret. Use a long random string, e.g.:
+#   node -e "console.log(require('crypto').randomBytes(48).toString('base64url'))"
+JWT_SECRET="replace-with-a-long-random-string"
+
+# Cloudflare Email Service sender address. Must be at your onboarded domain.
+EMAIL_FROM="Hoyas Concession <noreply@hoyaconcessions.com>"
+
+# Recipient for admin new-signup notifications. Must be a real inbox you monitor.
+# If you want admin@hoyaconcessions.com, set up Cloudflare Email Routing to forward
+# it to a personal inbox; otherwise use a personal address here.
+ADMIN_EMAIL="admin@hoyaconcessions.com"
+
+# One-time bootstrap admin credentials used to create the first admin account.
+# Remove or rotate after the first successful admin login.
+BOOTSTRAP_ADMIN_EMAIL="you@hoyaconcessions.com"
+BOOTSTRAP_ADMIN_PASSWORD="replace-with-a-strong-password"

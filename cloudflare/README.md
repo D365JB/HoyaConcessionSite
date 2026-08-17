@@ -34,7 +34,7 @@ The Worker sends volunteer confirmations, admin notifications, and morning remin
 1. **Use Cloudflare DNS for your sending domain.** Email Service requires the domain to be on Cloudflare DNS. If your Hoya domain is not yet on Cloudflare, add the site and move its nameservers first.
 2. **Onboard the domain for Email Sending.** In the dashboard: **Compute → Email Service → Email Sending → Onboard Domain**, choose your domain, and accept the DNS records Cloudflare adds under `cf-bounce` (bounce MX, SPF, DKIM, and a `_dmarc` DMARC record). On Cloudflare DNS this usually propagates in 5–15 minutes.
 3. **Enable the Workers Paid plan.** Sending to arbitrary recipients (volunteers) requires Workers Paid. It includes 3,000 outbound emails per month, then $0.35 per 1,000 — comfortably above this program's volume. On the free plan you can only send to verified destination addresses in your own account.
-4. **Set the sender secrets** (see step 4 below): `EMAIL_FROM` must be an address at the onboarded domain (for example `Hoyas Concession <noreply@yourdomain.org>`), and `ADMIN_EMAIL` is where new-signup notifications are sent.
+4. **Set the sender secrets** (see step 4 below): `EMAIL_FROM` must be an address at the onboarded domain (for example `Hoyas Concession <noreply@hoyaconcessions.com>`), and `ADMIN_EMAIL` is where new-signup notifications are sent.
 
 Signup email is dispatched non-blocking, so an incomplete email setup will not break volunteer registration — sends simply no-op and log a warning until the domain and plan are ready. [2]
 
