@@ -59,6 +59,46 @@ export async function getUserByOpenId(openId: string) {
   return result[0];
 }
 
+/** Returns accounts that have signed in through Manus OAuth and can be granted admin access. */
+export async function listUsersForAdmin() {
+  const db = await getDb();
+  if (!db) return [];
+  const accounts = await db
+    .select({
+      id: users.id,
+      openId: users.openId,
+      name: users.name,
+      email: users.email,
+      role: users.role,
+      createdAt: users.createdAt,
+      lastSignedIn: users.lastSignedIn,
+    })
+    .from(users)
+    .orderBy(asc(users.name), asc(users.email));
+  return accounts.map((account) => ({
+    ...account,
+    isOwner: account.openId === ENV.ownerOpenId,
+  }));
+}
+
+/**
+ * Grants or revokes role access. The project owner's account is protected so
+ * it cannot be demoted through the dashboard.
+ */
+export async function updateUserRoleById(userId: number, role: "user" | "admin") {
+  const db = await getDb();
+  if (!db) throw new Error("DB unavailable");
+
+  const [target] = await db.select().from(users).where(eq(users.id, userId)).limit(1);
+  if (!target) throw new Error("User not found");
+  if (target.openId === ENV.ownerOpenId && role !== "admin") {
+    throw new Error("The project owner's administrator access cannot be removed");
+  }
+
+  await db.update(users).set({ role }).where(eq(users.id, userId));
+  return { id: target.id, role };
+}
+
 // ─── Concession Events ────────────────────────────────────────────────────────
 
 export async function getUpcomingEvents(season?: string) {

@@ -38,7 +38,7 @@
 - [x] Morning reminder email via periodic heartbeat job
 - [x] Email templates (HOYA branded)
 - [x] Heartbeat cron setup/disable UI in Season panel
-- [ ] Add SMTP credentials in Settings → Secrets to activate email sending
+- [x] Add SMTP credentials in Settings → Secrets to activate email sending
 
 ## Phase 5: Polish & Tests
 - [x] Vitest unit tests for core backend procedures (21 tests passing)
@@ -47,7 +47,7 @@
 
 ## Future / Optional
 - [ ] Upload HOYA logo image and replace "H" text placeholder in header
-- [ ] Promote admin user via DB (set role = 'admin' for your Manus account)
+- [x] Promote project owner to admin and add in-app administrator management
 
 ## Schedule Fix (July 27 update)
 - [x] Clear all existing seeded events and re-seed with corrected schedule
@@ -65,3 +65,8 @@
 - [x] Excel export (XLSX) wired in Volunteers page with client-side generation
 - [x] Search by name/email/phone + status filter on Volunteers page
 - [x] Today's Volunteers panel on Dashboard showing live data
+
+## Admin Management
+- [x] Add an admin-only Admin Access page that lists signed-in users and their current role
+- [x] Allow existing admins to promote eligible users to admin and revoke non-owner admin access safely
+- [x] Add role-management tests and verify the new page on desktop and mobile

@@ -1,6 +1,7 @@
 import { describe, expect, it, beforeEach, vi } from "vitest";
 import { appRouter } from "./routers";
 import type { TrpcContext } from "./_core/context";
+import { listUsersForAdmin, updateUserRoleById } from "./db";
 
 // ─── Mock DB helpers ──────────────────────────────────────────────────────────
 vi.mock("./db", async (importOriginal) => {
@@ -39,6 +40,7 @@ vi.mock("./db", async (importOriginal) => {
     getUpcomingEvents: vi.fn().mockResolvedValue([]),
     getAllEvents: vi.fn().mockResolvedValue([]),
     getSlotsForEvent: vi.fn().mockResolvedValue([]),
+    getSlotById: vi.fn().mockResolvedValue({ id: 1, eventId: 1, role: "co_cook", slotIndex: 0, isOpen: false }),
     getAllVolunteers: vi.fn().mockResolvedValue([]),
     getTodayVolunteers: vi.fn().mockResolvedValue([]),
     getDashboardStats: vi.fn().mockResolvedValue({ totalVolunteers: 0, todayCount: 0, openSlots: 0, upcomingEvents: 0 }),
@@ -52,12 +54,18 @@ vi.mock("./db", async (importOriginal) => {
     listCronJobs: vi.fn().mockResolvedValue([]),
     getCronJob: vi.fn().mockResolvedValue(undefined),
     upsertCronJob: vi.fn().mockResolvedValue(undefined),
+    listUsersForAdmin: vi.fn().mockResolvedValue([
+      { id: 1, openId: "admin-openid", name: "Admin User", email: "admin@hoyas.org", role: "admin", createdAt: new Date(), lastSignedIn: new Date() },
+      { id: 2, openId: "user-openid", name: "Regular User", email: "user@example.com", role: "user", createdAt: new Date(), lastSignedIn: new Date() },
+    ]),
+    updateUserRoleById: vi.fn().mockImplementation(async (id: number, role: "user" | "admin") => ({ id, role })),
   };
 });
 
 vi.mock("./email", () => ({
   sendConfirmationEmail: vi.fn().mockResolvedValue(undefined),
   sendReminderEmail: vi.fn().mockResolvedValue(undefined),
+  sendAdminNewSignupEmail: vi.fn().mockResolvedValue(undefined),
 }));
 
 // ─── Context helpers ──────────────────────────────────────────────────────────
@@ -256,5 +264,30 @@ describe("auth.logout", () => {
     const result = await caller.auth.logout();
     expect(result.success).toBe(true);
     expect((ctx.res.clearCookie as any).mock.calls.length).toBeGreaterThan(0);
+  });
+});
+
+describe("adminAccess (admin only)", () => {
+  it("rejects the user list for non-admin users", async () => {
+    const caller = appRouter.createCaller(makeUserCtx());
+    await expect(caller.adminAccess.listUsers()).rejects.toMatchObject({ code: "FORBIDDEN" });
+  });
+
+  it("lists signed-in accounts for an admin", async () => {
+    const caller = appRouter.createCaller(makeAdminCtx());
+    const result = await caller.adminAccess.listUsers();
+    expect(result).toHaveLength(2);
+    expect(vi.mocked(listUsersForAdmin)).toHaveBeenCalled();
+  });
+
+  it("allows an admin to promote another signed-in user", async () => {
+    const caller = appRouter.createCaller(makeAdminCtx());
+    await expect(caller.adminAccess.setRole({ id: 2, role: "admin" })).resolves.toEqual({ id: 2, role: "admin" });
+    expect(vi.mocked(updateUserRoleById)).toHaveBeenCalledWith(2, "admin");
+  });
+
+  it("prevents an admin from removing their own access", async () => {
+    const caller = appRouter.createCaller(makeAdminCtx());
+    await expect(caller.adminAccess.setRole({ id: 1, role: "user" })).rejects.toMatchObject({ code: "BAD_REQUEST" });
   });
 });

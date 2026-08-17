@@ -21,7 +21,7 @@ import {
 } from "@/components/ui/sidebar";
 import { startLogin } from "@/const";
 import { useIsMobile } from "@/hooks/useMobile";
-import { LayoutDashboard, LogOut, Users, Calendar, ExternalLink, PanelLeft } from "lucide-react";
+import { LayoutDashboard, LogOut, Users, Calendar, ExternalLink, PanelLeft, ShieldCheck } from "lucide-react";
 import { CSSProperties, useEffect, useRef, useState } from "react";
 import { useLocation } from "wouter";
 import { DashboardLayoutSkeleton } from "./DashboardLayoutSkeleton";
@@ -31,6 +31,7 @@ const menuItems = [
   { icon: LayoutDashboard, label: "Dashboard", path: "/admin/dashboard" },
   { icon: Users, label: "Volunteers", path: "/admin/volunteers" },
   { icon: Calendar, label: "Season", path: "/admin/season" },
+  { icon: ShieldCheck, label: "Admin Access", path: "/admin/access" },
   { icon: ExternalLink, label: "Public Page", path: "/" },
 ];
 

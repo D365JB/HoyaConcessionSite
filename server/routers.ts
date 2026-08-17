@@ -27,6 +27,7 @@ import {
   listCronJobs,
 } from "./db";
 import { getSlotById } from "./db";
+import { listUsersForAdmin, updateUserRoleById } from "./db";
 import { sendConfirmationEmail, sendReminderEmail, sendAdminNewSignupEmail } from "./email";
 import { createHeartbeatJob, deleteHeartbeatJob } from "./_core/heartbeat";
 
@@ -246,6 +247,33 @@ export const appRouter = router({
       await upsertCronJob("morning-reminders", null, "Morning reminder emails (disabled)");
       return { success: true };
     }),
+  }),
+
+  // ─── Admin: Access Management ───────────────────────────────────────────────
+  adminAccess: router({
+    listUsers: adminProcedure.query(async () => {
+      return listUsersForAdmin();
+    }),
+
+    setRole: adminProcedure
+      .input(z.object({ id: z.number(), role: z.enum(["user", "admin"]) }))
+      .mutation(async ({ input, ctx }) => {
+        if (input.id === ctx.user.id && input.role === "user") {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: "You cannot remove your own administrator access.",
+          });
+        }
+
+        try {
+          return await updateUserRoleById(input.id, input.role);
+        } catch (error) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: error instanceof Error ? error.message : "Unable to update administrator access.",
+          });
+        }
+      }),
   }),
 });
 

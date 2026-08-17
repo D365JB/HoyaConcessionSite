@@ -9,6 +9,7 @@ import AdminDashboard from "./pages/AdminDashboard";
 import AdminLogin from "./pages/AdminLogin";
 import AdminVolunteers from "./pages/AdminVolunteers";
 import AdminSeason from "./pages/AdminSeason";
+import AdminAccess from "./pages/AdminAccess";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { useEffect } from "react";
 import { useLocation } from "wouter";
@@ -50,6 +51,9 @@ function Router() {
       </Route>
       <Route path="/admin/season">
         <ProtectedAdminRoute component={AdminSeason} />
+      </Route>
+      <Route path="/admin/access">
+        <ProtectedAdminRoute component={AdminAccess} />
       </Route>
       <Route path="/404" component={NotFound} />
       <Route component={NotFound} />
