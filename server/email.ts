@@ -36,6 +36,12 @@ function getTransporter() {
       from: workerEmailFrom,
     };
   }
+  // On Cloudflare the EMAIL binding is always present, so a missing EMAIL_FROM is
+  // the usual reason sends silently no-op; surface that distinctly from SMTP.
+  if (workerEmail && !workerEmailFrom) {
+    console.warn("[Email] Cloudflare EMAIL binding present but EMAIL_FROM is not set — skipping send. Set the EMAIL_FROM secret to a verified sender address.");
+    return null;
+  }
   const host = process.env.SMTP_HOST;
   const user = process.env.SMTP_USER;
   const pass = process.env.SMTP_PASS;

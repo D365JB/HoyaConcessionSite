@@ -27,9 +27,16 @@ npx wrangler hyperdrive create hoyas-concession-mysql --connection-string="mysql
 
 Copy the returned ID into `cloudflare/wrangler.jsonc` in place of `REPLACE_WITH_YOUR_HYPERDRIVE_ID`. For local testing, replace `REPLACE_WITH_A_LOCAL_MYSQL_CONNECTION_STRING` with a safe development connection string. Hyperdrive maintains the underlying database connection pool, so the Worker creates a compatible `mysql2` connection for each request. [1]
 
-## 3. Enable Cloudflare Email Service
+## 3. Enable Cloudflare Email Service (outbound email)
 
-Cloudflare Email Service provides the Worker `EMAIL` binding used by the confirmation, admin-notification, and reminder messages. Configure a sender address for your Hoya domain, then set `EMAIL_FROM` to that address. The outbound Email Sending feature is available on Workers Paid; Cloudflare also documents the verified-destination option for limited sending. [2]
+The Worker sends volunteer confirmations, admin notifications, and morning reminders through the `EMAIL` binding (`send_email` in `wrangler.jsonc`). The code already targets Cloudflare Email Service's current `env.EMAIL.send({ to, from, subject, html })` API, so no code changes are needed — only account setup:
+
+1. **Use Cloudflare DNS for your sending domain.** Email Service requires the domain to be on Cloudflare DNS. If your Hoya domain is not yet on Cloudflare, add the site and move its nameservers first.
+2. **Onboard the domain for Email Sending.** In the dashboard: **Compute → Email Service → Email Sending → Onboard Domain**, choose your domain, and accept the DNS records Cloudflare adds under `cf-bounce` (bounce MX, SPF, DKIM, and a `_dmarc` DMARC record). On Cloudflare DNS this usually propagates in 5–15 minutes.
+3. **Enable the Workers Paid plan.** Sending to arbitrary recipients (volunteers) requires Workers Paid. It includes 3,000 outbound emails per month, then $0.35 per 1,000 — comfortably above this program's volume. On the free plan you can only send to verified destination addresses in your own account.
+4. **Set the sender secrets** (see step 4 below): `EMAIL_FROM` must be an address at the onboarded domain (for example `Hoyas Concession <noreply@yourdomain.org>`), and `ADMIN_EMAIL` is where new-signup notifications are sent.
+
+Signup email is dispatched non-blocking, so an incomplete email setup will not break volunteer registration — sends simply no-op and log a warning until the domain and plan are ready. [2]
 
 ## 4. Set Worker secrets
 
