@@ -24,6 +24,7 @@
       "database_id": "b30c8973-2c64-4e0e-bd93-2c2d2d199309"
     }
   ],
+  "send_email": [{ "name": "EMAIL" }],
   "triggers": {
     "crons": ["30 12,13 * * *"]
   }

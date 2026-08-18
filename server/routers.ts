@@ -107,6 +107,29 @@ export const appRouter = router({
         return { id };
       }),
 
+    bulkCreate: adminProcedure
+      .input(z.object({
+        events: z.array(z.object({
+          eventDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Date must be YYYY-MM-DD"),
+          season: z.string().min(1),
+          label: z.string().optional(),
+          location: z.string().optional(),
+        })).min(1).max(200),
+      }))
+      .mutation(async ({ input }) => {
+        let created = 0;
+        const errors: string[] = [];
+        for (const ev of input.events) {
+          try {
+            await createEvent(ev.eventDate, ev.season, ev.label, ev.location);
+            created++;
+          } catch (e) {
+            errors.push(`${ev.eventDate}: ${e instanceof Error ? e.message : "failed"}`);
+          }
+        }
+        return { created, errors };
+      }),
+
     update: adminProcedure
       .input(z.object({ id: z.number(), eventDate: z.string().optional(), label: z.string().optional(), location: z.string().optional(), isActive: z.boolean().optional() }))
       .mutation(async ({ input }) => {

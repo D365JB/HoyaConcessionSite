@@ -165,7 +165,7 @@ export async function getActiveAdminEmails(): Promise<string[]> {
     .select({ email: localAdminAccounts.email })
     .from(localAdminAccounts)
     .where(eq(localAdminAccounts.isActive, true));
-  return rows.map((r) => r.email).filter((e): e is string => !!e);
+  return rows.map((r) => r.email).filter((e): e is string => !!e && e.includes("@"));
 }
 
 export async function createLocalAdminAccount(input: { name: string; email: string; passwordHash: string }) {

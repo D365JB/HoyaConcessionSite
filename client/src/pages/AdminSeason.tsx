@@ -9,13 +9,58 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { Add24Regular as Plus, Delete24Regular as Trash2, Edit24Regular as Edit2, SpinnerIos20Regular as Loader2, CalendarLtr24Regular as CalendarDays, ToggleLeft24Regular as ToggleLeft, ToggleRight24Regular as ToggleRight, Alert24Regular as Bell, AlertOff24Regular as BellOff, CheckmarkCircle24Regular as CheckCircle2 } from "@fluentui/react-icons";
+import { Add24Regular as Plus, Delete24Regular as Trash2, Edit24Regular as Edit2, SpinnerIos20Regular as Loader2, CalendarLtr24Regular as CalendarDays, ToggleLeft24Regular as ToggleLeft, ToggleRight24Regular as ToggleRight, Alert24Regular as Bell, AlertOff24Regular as BellOff, CheckmarkCircle24Regular as CheckCircle2, ArrowUpload24Regular as Upload } from "@fluentui/react-icons";
 
 function formatDate(dateVal: string | Date): string {
   const s = typeof dateVal === "string" ? dateVal : dateVal.toISOString();
   const [y, m, d] = s.slice(0, 10).split("-").map(Number);
   const dt = new Date(Date.UTC(y, m - 1, d, 12, 0, 0));
   return dt.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric", year: "numeric", timeZone: "UTC" });
+}
+
+function parseCsvLine(line: string): string[] {
+  const out: string[] = [];
+  let cur = "";
+  let inQuotes = false;
+  for (let i = 0; i < line.length; i++) {
+    const ch = line[i];
+    if (inQuotes) {
+      if (ch === '"') {
+        if (line[i + 1] === '"') { cur += '"'; i++; } else inQuotes = false;
+      } else cur += ch;
+    } else if (ch === '"') inQuotes = true;
+    else if (ch === ",") { out.push(cur); cur = ""; }
+    else cur += ch;
+  }
+  out.push(cur);
+  return out.map((s) => s.trim());
+}
+
+function normalizeCsvDate(raw: string): string | null {
+  const t = (raw ?? "").trim();
+  if (/^\d{4}-\d{2}-\d{2}$/.test(t)) return t;
+  const m = t.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+  if (m) return `${m[3]}-${m[1].padStart(2, "0")}-${m[2].padStart(2, "0")}`;
+  return null;
+}
+
+type ParsedEvent = { eventDate: string; season: string; label?: string; location?: string };
+
+function parseEventsCsv(text: string, season: string): { events: ParsedEvent[]; skipped: number } {
+  const lines = text.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
+  if (lines.length === 0) return { events: [], skipped: 0 };
+  const rows = lines.map(parseCsvLine);
+  const startIdx = /date/i.test(rows[0][0] ?? "") ? 1 : 0;
+  const events: ParsedEvent[] = [];
+  let skipped = 0;
+  for (let i = startIdx; i < rows.length; i++) {
+    const date = normalizeCsvDate(rows[i][0]);
+    if (!date) { skipped++; continue; }
+    const location = rows[i][1]?.trim();
+    const label = rows[i][2]?.trim();
+    events.push({ eventDate: date, season, location: location || undefined, label: label || undefined });
+  }
+  return { events, skipped };
 }
 
 export default function AdminSeason() {
@@ -27,6 +72,9 @@ export default function AdminSeason() {
   const [newLabel, setNewLabel] = useState("");
   const [newLocation, setNewLocation] = useState("");
   const [newSeason, setNewSeason] = useState("2026");
+  const [bulkOpen, setBulkOpen] = useState(false);
+  const [bulkText, setBulkText] = useState("");
+  const [bulkSeason, setBulkSeason] = useState("2026");
   const [cronSetupDone, setCronSetupDone] = useState(false);
 
   useEffect(() => {
@@ -50,6 +98,16 @@ export default function AdminSeason() {
 
   const createEvent = trpc.events.create.useMutation({
     onSuccess: () => { utils.events.listAll.invalidate(); utils.events.listUpcoming.invalidate(); setAddOpen(false); setNewDate(""); setNewLabel(""); setNewLocation(""); toast.success("Event added!"); },
+    onError: (e) => toast.error(e.message),
+  });
+
+  const bulkCreate = trpc.events.bulkCreate.useMutation({
+    onSuccess: (data) => {
+      utils.events.listAll.invalidate(); utils.events.listUpcoming.invalidate();
+      setBulkOpen(false); setBulkText("");
+      if (data.errors.length) toast.warning(`Imported ${data.created} event(s); ${data.errors.length} skipped.`);
+      else toast.success(`Imported ${data.created} event(s)!`);
+    },
     onError: (e) => toast.error(e.message),
   });
 
@@ -119,14 +177,24 @@ export default function AdminSeason() {
           <div>
             <p className="text-sm text-gray-500">{events ? `${events.length} total events` : "Loading..."}</p>
           </div>
-          <Button
-            onClick={() => setAddOpen(true)}
-            className="text-white btn-active-scale"
-            style={{ backgroundColor: "#003087" }}
-          >
-            <Plus className="w-4 h-4 mr-2" />
-            Add Event
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              onClick={() => setBulkOpen(true)}
+              className="btn-active-scale"
+            >
+              <Upload className="w-4 h-4 mr-2" />
+              Bulk Import
+            </Button>
+            <Button
+              onClick={() => setAddOpen(true)}
+              className="text-white btn-active-scale"
+              style={{ backgroundColor: "#003087" }}
+            >
+              <Plus className="w-4 h-4 mr-2" />
+              Add Event
+            </Button>
+          </div>
         </div>
 
         {isLoading ? (
@@ -269,6 +337,56 @@ export default function AdminSeason() {
               </div>
             </div>
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Bulk Import Dialog */}
+      <Dialog open={bulkOpen} onOpenChange={setBulkOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle style={{ color: "#003087" }}>Bulk Import Events</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 mt-2">
+            <p className="text-xs text-gray-500">One row per game night — columns <b>Date, Location, Label</b> (Location/Label optional). Dates accept <b>YYYY-MM-DD</b> or <b>M/D/YYYY</b>. Each event auto-creates the 4 standard slots (Co-Cook, Kitchen Assistant, 2× Cashier).</p>
+            <div className="space-y-1.5">
+              <Label>Season</Label>
+              <Input value={bulkSeason} onChange={(e) => setBulkSeason(e.target.value)} placeholder="2026" />
+            </div>
+            <div className="space-y-1.5">
+              <Label>Upload CSV file (or paste below)</Label>
+              <Input type="file" accept=".csv,text/csv" onChange={(e) => { const f = e.target.files?.[0]; if (f) f.text().then(setBulkText); }} />
+            </div>
+            <textarea
+              className="w-full h-40 rounded-md border border-gray-200 p-2 text-sm font-mono focus:outline-none focus:ring-2"
+              placeholder={"Date,Location,Label\n2026-08-31,Hoya Field Concession Stand,Season Opener\n2026-09-07,Hoya Field Concession Stand"}
+              value={bulkText}
+              onChange={(e) => setBulkText(e.target.value)}
+            />
+            {bulkText.trim() && (() => {
+              const { events: parsed, skipped } = parseEventsCsv(bulkText, bulkSeason);
+              return (
+                <p className="text-xs">
+                  <span className="font-semibold" style={{ color: "#007a35" }}>{parsed.length} event(s) ready</span>
+                  {skipped > 0 && <span className="text-orange-600"> · {skipped} row(s) skipped (bad date)</span>}
+                </p>
+              );
+            })()}
+            <div className="flex gap-3">
+              <Button variant="outline" onClick={() => setBulkOpen(false)} className="flex-1">Cancel</Button>
+              <Button
+                onClick={() => {
+                  const { events: parsed } = parseEventsCsv(bulkText, bulkSeason);
+                  if (parsed.length === 0) { toast.error("No valid rows found. Check the date column."); return; }
+                  bulkCreate.mutate({ events: parsed });
+                }}
+                disabled={bulkCreate.isPending}
+                className="flex-1 text-white"
+                style={{ backgroundColor: "#003087" }}
+              >
+                {bulkCreate.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : "Import Events"}
+              </Button>
+            </div>
+          </div>
         </DialogContent>
       </Dialog>
     </DashboardLayout>
