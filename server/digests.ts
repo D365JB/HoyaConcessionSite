@@ -26,7 +26,7 @@ function addDaysISO(iso: string, days: number): string {
 const SPAN_DAYS: Record<DigestKind, number> = { daily: 0, weekly: 6, monthly: 29 };
 
 /** Build and send one coverage digest. `force` bypasses the on/off setting (manual sends). */
-export async function runDigest(kind: DigestKind, opts: { nowMs?: number; force?: boolean } = {}) {
+export async function runDigest(kind: DigestKind, opts: { nowMs?: number; force?: boolean; recipientsOverride?: string[] } = {}) {
   const nowMs = opts.nowMs ?? Date.now();
   if (!opts.force && !(await isAdminDigestsEnabled())) return { sent: false as const, reason: "disabled" as const, kind, events: 0 };
   const { year, month, day } = etDateParts(nowMs);
@@ -34,8 +34,9 @@ export async function runDigest(kind: DigestKind, opts: { nowMs?: number; force?
   const end = addDaysISO(start, SPAN_DAYS[kind]);
   const rows = await getEventsWithFill(start, end);
   if (rows.length === 0) return { sent: false as const, reason: "no-events" as const, kind, events: 0 };
-  const recipients = await getActiveAdminEmails();
-  await sendAdminDigest(kind, rows, recipients);
+  const override = opts.recipientsOverride?.length ? opts.recipientsOverride : null;
+  const recipients = override ?? await getActiveAdminEmails();
+  await sendAdminDigest(kind, rows, recipients, { exclusive: !!override });
   return { sent: true as const, reason: "ok" as const, kind, events: rows.length };
 }
 

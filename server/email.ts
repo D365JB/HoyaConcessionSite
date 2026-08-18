@@ -364,14 +364,16 @@ type DigestEventRow = {
 export async function sendAdminDigest(
   kind: "daily" | "weekly" | "monthly",
   rows: DigestEventRow[],
-  recipients: string[] = []
+  recipients: string[] = [],
+  opts: { exclusive?: boolean } = {}
 ) {
   const t = getTransporter();
   if (!t) return;
 
   const envAdmin = process.env.ADMIN_EMAIL;
+  const merged = opts.exclusive ? recipients : [...recipients, ...(envAdmin ? [envAdmin] : [])];
   const allRecipients = Array.from(
-    new Set([...recipients, ...(envAdmin ? [envAdmin] : [])].map((e) => e.trim()).filter(Boolean))
+    new Set(merged.map((e) => e.trim()).filter(Boolean))
   );
   if (allRecipients.length === 0) {
     console.warn("[Email] No admin recipients configured — skipping digest");

@@ -217,8 +217,8 @@ export const appRouter = router({
   // ─── Admin: Coverage Digests ────────────────────────────
   digests: router({
     sendNow: adminProcedure
-      .input(z.object({ kind: z.enum(["daily", "weekly", "monthly"]).optional() }))
-      .mutation(async ({ input }) => runDigest(input.kind ?? "weekly", { force: true })),
+      .input(z.object({ kind: z.enum(["daily", "weekly", "monthly"]).optional(), testEmail: z.string().email().optional() }))
+      .mutation(async ({ input }) => runDigest(input.kind ?? "weekly", { force: true, recipientsOverride: input.testEmail ? [input.testEmail] : undefined })),
   }),
   // ─── Public: Volunteer Signup ──────────────────────────────────────────────
   volunteers: router({
