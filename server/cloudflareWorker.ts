@@ -3,6 +3,7 @@ import { appRouter } from "./routers";
 import { createContext } from "./_core/context";
 import { configureD1, getSlotById, getVolunteersForReminder, markReminderSent } from "./db";
 import { configureWorkerEmail, sendReminderEmail } from "./email";
+import { runScheduledDigests } from "./digests";
 
 type EmailBinding = { send(message: { to: string; from: string; subject: string; html: string; text?: string }): Promise<void> };
 
@@ -119,5 +120,7 @@ export default {
     // The Wrangler cron fires in both possible UTC hours; this guard keeps the
     // actual email run at 8:30 AM Eastern through standard and daylight time.
     if (easternHour === "08") ctx.waitUntil(sendMorningReminders());
+    // Admin coverage digests run at 7:00 AM Eastern (one email per morning).
+    if (easternHour === "07") ctx.waitUntil(runScheduledDigests(controller.scheduledTime));
   },
 };

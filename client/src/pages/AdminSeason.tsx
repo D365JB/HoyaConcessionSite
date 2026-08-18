@@ -158,6 +158,15 @@ export default function AdminSeason() {
     onError: (e) => toast.error(e.message),
   });
 
+  const sendDigest = trpc.digests.sendNow.useMutation({
+    onSuccess: (res: any) => {
+      if (res?.sent) toast.success(`Weekly digest sent (${res.events} event${res.events === 1 ? "" : "s"}).`);
+      else if (res?.reason === "no-events") toast.info("No upcoming events in the next 7 days — nothing to send.");
+      else toast.info("Digest not sent.");
+    },
+    onError: (e) => toast.error(`Failed to send digest: ${e.message}`),
+  });
+
   const bulkCreate = trpc.events.bulkCreate.useMutation({
     onSuccess: (data) => {
       utils.events.listAll.invalidate(); utils.events.listUpcoming.invalidate();
@@ -196,17 +205,23 @@ export default function AdminSeason() {
           <div className="flex items-start justify-between gap-4 flex-wrap">
             <div>
               <h3 className="font-bold text-gray-900 text-sm">Seasons</h3>
-              <p className="text-xs text-gray-500 mt-0.5">Current: <span className="font-semibold" style={{ color: "#003087" }}>{currentSeason?.name ?? "—"}</span> · new events default to it. Click a season to make it current.</p>
-              <div className="flex flex-wrap gap-1.5 mt-2">
-                {(seasonList ?? []).map((s: any) => (
-                  <button key={s.id} onClick={() => setSeasonCurrent.mutate({ id: s.id })}
-                    className="text-xs px-2.5 py-1 rounded-full border transition-colors"
-                    style={s.isCurrent ? { backgroundColor: "#003087", color: "#fff", borderColor: "#003087" } : { backgroundColor: "#fff", color: "#003087", borderColor: "#d1d5db" }}
-                    title={s.isCurrent ? "Current season" : "Set as current"}>
-                    {s.name}{s.isCurrent ? " ✓" : ""}
-                  </button>
-                ))}
-                {(!seasonList || seasonList.length === 0) && <span className="text-xs text-gray-400">No seasons yet</span>}
+              <p className="text-xs text-gray-500 mt-0.5">New events default to the current season.</p>
+              <div className="flex items-center gap-2 mt-2">
+                <Label className="text-xs text-gray-600">Current season</Label>
+                <Select
+                  value={(seasonList ?? []).find((s: any) => s.isCurrent)?.name ?? currentSeason?.name ?? ""}
+                  onValueChange={(name) => {
+                    const s = (seasonList ?? []).find((x: any) => x.name === name);
+                    if (s && !s.isCurrent) setSeasonCurrent.mutate({ id: s.id });
+                  }}
+                  disabled={setSeasonCurrent.isPending || !seasonList || seasonList.length === 0}
+                >
+                  <SelectTrigger className="h-8 w-32 text-sm"><SelectValue placeholder="No seasons yet" /></SelectTrigger>
+                  <SelectContent>
+                    {(seasonList ?? []).map((s: any) => <SelectItem key={s.id} value={s.name}>{s.name}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+                {setSeasonCurrent.isPending && <Loader2 className="w-3.5 h-3.5 animate-spin text-gray-400" />}
               </div>
             </div>
             <div className="flex items-end gap-2">
@@ -269,6 +284,24 @@ export default function AdminSeason() {
                 disabled={setNotif.isPending || !notifSettings}
                 onClick={() => setNotif.mutate({ volunteerStatusEmails: !notifSettings?.volunteerStatusEmails })}>
                 {notifSettings?.volunteerStatusEmails ? <><ToggleRight className="w-4 h-4 mr-1" />On</> : <><ToggleLeft className="w-4 h-4 mr-1" />Off</>}
+              </Button>
+            </div>
+            <div className="flex items-center justify-between py-3 gap-4">
+              <div>
+                <p className="text-sm font-medium text-gray-900">Admin coverage digests</p>
+                <p className="text-xs text-gray-500">Daily / weekly / monthly summary of upcoming events and open spots.</p>
+                <button
+                  onClick={() => sendDigest.mutate({ kind: "weekly" })}
+                  disabled={sendDigest.isPending || notifSettings?.adminDigests === false}
+                  className="text-xs mt-1 font-medium text-[#003087] hover:underline disabled:opacity-40 disabled:no-underline">
+                  {sendDigest.isPending ? "Sending…" : "Send this week's digest now"}
+                </button>
+              </div>
+              <Button size="sm" variant="outline"
+                className={`text-xs h-8 flex-shrink-0 ${notifSettings?.adminDigests ? "border-green-200 text-green-600 hover:bg-green-50" : "border-gray-200 text-gray-400 hover:bg-gray-50"}`}
+                disabled={setNotif.isPending || !notifSettings}
+                onClick={() => setNotif.mutate({ adminDigests: !notifSettings?.adminDigests })}>
+                {notifSettings?.adminDigests ? <><ToggleRight className="w-4 h-4 mr-1" />On</> : <><ToggleLeft className="w-4 h-4 mr-1" />Off</>}
               </Button>
             </div>
           </div>

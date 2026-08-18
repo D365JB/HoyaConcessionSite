@@ -38,6 +38,7 @@ import {
 import { getSlotById } from "./db";
 import { createLocalAdminAccount, deactivateLocalAdminAccount, getLocalAdminAccountByEmail, listLocalAdminAccounts } from "./db";
 import { sendConfirmationEmail, sendReminderEmail, sendAdminNewSignupEmail, sendStatusEmail } from "./email";
+import { runDigest } from "./digests";
 import { createHeartbeatJob, deleteHeartbeatJob } from "./_core/heartbeat";
 import { createLocalAdminSession, ensureBootstrapLocalAdmin, getLocalSessionMaxAgeMs, hashPassword, LOCAL_ADMIN_COOKIE, verifyPassword } from "./localAuth";
 
@@ -195,20 +196,31 @@ export const appRouter = router({
     getNotifications: adminProcedure.query(async () => ({
       adminSignupNotifications: (await getSetting("adminSignupNotifications")) !== "off",
       volunteerStatusEmails: (await getSetting("volunteerStatusEmails")) !== "off",
+      adminDigests: (await getSetting("adminDigests")) !== "off",
     })),
     setNotifications: adminProcedure
       .input(z.object({
         adminSignupNotifications: z.boolean().optional(),
         volunteerStatusEmails: z.boolean().optional(),
+        adminDigests: z.boolean().optional(),
       }))
       .mutation(async ({ input }) => {
         if (input.adminSignupNotifications !== undefined)
           await setSetting("adminSignupNotifications", input.adminSignupNotifications ? "on" : "off");
         if (input.volunteerStatusEmails !== undefined)
           await setSetting("volunteerStatusEmails", input.volunteerStatusEmails ? "on" : "off");
+        if (input.adminDigests !== undefined)
+          await setSetting("adminDigests", input.adminDigests ? "on" : "off");
         return { success: true };
       }),
-  }),  // ─── Public: Volunteer Signup ──────────────────────────────────────────────
+  }),
+  // ─── Admin: Coverage Digests ────────────────────────────
+  digests: router({
+    sendNow: adminProcedure
+      .input(z.object({ kind: z.enum(["daily", "weekly", "monthly"]).optional() }))
+      .mutation(async ({ input }) => runDigest(input.kind ?? "weekly", { force: true })),
+  }),
+  // ─── Public: Volunteer Signup ──────────────────────────────────────────────
   volunteers: router({
     signup: publicProcedure
       .input(

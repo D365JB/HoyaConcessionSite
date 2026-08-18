@@ -351,3 +351,99 @@ export async function sendStatusEmail(
     html,
   });
 }
+
+type DigestEventRow = {
+  event: ConcessionEvent;
+  slots: VolunteerSlot[];
+  totalSlots: number;
+  openSlots: number;
+  filledSlots: number;
+  volunteers: Volunteer[];
+};
+
+export async function sendAdminDigest(
+  kind: "daily" | "weekly" | "monthly",
+  rows: DigestEventRow[],
+  recipients: string[] = []
+) {
+  const t = getTransporter();
+  if (!t) return;
+
+  const envAdmin = process.env.ADMIN_EMAIL;
+  const allRecipients = Array.from(
+    new Set([...recipients, ...(envAdmin ? [envAdmin] : [])].map((e) => e.trim()).filter(Boolean))
+  );
+  if (allRecipients.length === 0) {
+    console.warn("[Email] No admin recipients configured — skipping digest");
+    return;
+  }
+
+  const totalOpen = rows.reduce((n, r) => n + r.openSlots, 0);
+  const totalSlots = rows.reduce((n, r) => n + r.totalSlots, 0);
+  const kindLabel = kind === "daily" ? "Today" : kind === "weekly" ? "This Week" : "Next 30 Days";
+  const subject = totalOpen > 0
+    ? `📋 Concession Coverage (${kindLabel}) — ${totalOpen} open spot${totalOpen === 1 ? "" : "s"}`
+    : `📋 Concession Coverage (${kindLabel}) — fully covered ✅`;
+
+  const eventRows = rows.map((r) => {
+    const dateStr = formatDate(r.event.eventDate);
+    const typeLabel = r.event.eventType === "game_day" ? "Game Day" : "Practice";
+    const openByRole = r.slots.filter((s) => s.isOpen).reduce((acc, s) => { acc[s.role] = (acc[s.role] ?? 0) + 1; return acc; }, {} as Record<string, number>);
+    const needs = Object.entries(openByRole).map(([role, n]) => `${ROLE_LABELS[role] ?? role} ×${n}`).join(", ");
+    const covered = r.totalSlots - r.openSlots;
+    const statusColor = r.openSlots === 0 ? "#009A44" : (r.openSlots >= r.totalSlots ? "#c62828" : "#c05600");
+    const statusText = r.openSlots === 0 ? "Fully covered" : `${r.openSlots} open`;
+    return `
+      <tr>
+        <td style="padding:12px 8px;border-bottom:1px solid #eee;vertical-align:top;">
+          <div style="color:#003087;font-weight:bold;font-size:14px;">${dateStr}</div>
+          <div style="color:#666;font-size:12px;margin-top:2px;">${typeLabel}${r.event.location ? ` · ${r.event.location}` : ""}${r.event.label ? ` · ${r.event.label}` : ""}</div>
+          ${needs ? `<div style="color:#c05600;font-size:12px;margin-top:4px;">Still needs: ${needs}</div>` : ""}
+        </td>
+        <td style="padding:12px 8px;border-bottom:1px solid #eee;text-align:right;white-space:nowrap;vertical-align:top;">
+          <div style="color:${statusColor};font-weight:bold;font-size:13px;">${statusText}</div>
+          <div style="color:#999;font-size:11px;margin-top:2px;">${covered}/${r.totalSlots} filled</div>
+        </td>
+      </tr>`;
+  }).join("");
+
+  const summaryLine = totalOpen > 0
+    ? `<strong style="color:#c05600;">${totalOpen}</strong> of ${totalSlots} volunteer spots still need to be filled.`
+    : `All ${totalSlots} volunteer spots are covered — nice work! 🎉`;
+
+  const html = `
+<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"></head>
+<body style="margin:0;padding:0;background:#f4f4f4;font-family:Arial,sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#f4f4f4;padding:20px 0;">
+    <tr><td align="center">
+      <table width="600" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:8px;overflow:hidden;max-width:600px;width:100%;">
+        <tr><td style="background:#003087;padding:24px 32px;text-align:center;">
+          <h1 style="color:#ffffff;margin:0;font-size:24px;font-weight:bold;">HOYAS CONCESSION</h1>
+          <p style="color:#009A44;margin:4px 0 0;font-size:14px;font-weight:600;letter-spacing:1px;">COVERAGE SUMMARY · ${kindLabel.toUpperCase()}</p>
+        </td></tr>
+        <tr><td style="padding:32px;">
+          <p style="color:#333;line-height:1.6;margin:0 0 16px;">${summaryLine}</p>
+          <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;">
+            ${eventRows}
+          </table>
+          <p style="color:#666;font-size:13px;margin-top:20px;">Log in to the admin dashboard to manage volunteers, or reply to this email with questions.</p>
+        </td></tr>
+        <tr><td style="background:#003087;padding:16px;text-align:center;">
+          <p style="color:#ffffff;margin:0;font-size:12px;">© 2026 Hoyas Youth Sports · Concession Volunteer Program</p>
+        </td></tr>
+      </table>
+    </td></tr>
+  </table>
+</body>
+</html>`;
+
+  await t.transporter.sendMail({
+    from: t.from,
+    to: allRecipients,
+    subject,
+    replyTo: envAdmin || undefined,
+    html,
+  });
+}

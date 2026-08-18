@@ -244,6 +244,24 @@ export async function getEventById(id: number) {
   return result[0];
 }
 
+// Events in [startDate, endDate] (inclusive, YYYY-MM-DD) with slot fill counts and
+// their non-canceled roster — used to build admin coverage digests.
+export async function getEventsWithFill(startDate: string, endDate: string) {
+  const db = await getDb();
+  if (!db) return [];
+  const evs = await db.select().from(concessionEvents)
+    .where(and(eq(concessionEvents.isActive, true), gte(concessionEvents.eventDate, startDate), lte(concessionEvents.eventDate, endDate)))
+    .orderBy(asc(concessionEvents.eventDate));
+  const out = [];
+  for (const event of evs) {
+    const slots = await db.select().from(volunteerSlots).where(eq(volunteerSlots.eventId, event.id));
+    const vols = await db.select().from(volunteers).where(and(eq(volunteers.eventId, event.id), ne(volunteers.status, "canceled")));
+    const openSlots = slots.filter((s) => s.isOpen).length;
+    out.push({ event, slots, totalSlots: slots.length, openSlots, filledSlots: slots.length - openSlots, volunteers: vols });
+  }
+  return out;
+}
+
 // ─── Seasons ──────────────────────────────────────────────
 
 export async function listSeasons() {
@@ -303,6 +321,11 @@ export async function isAdminNotificationsEnabled(): Promise<boolean> {
 /** Volunteer check-in / no-show emails are on unless explicitly turned off. */
 export async function isVolunteerStatusEmailsEnabled(): Promise<boolean> {
   return (await getSetting("volunteerStatusEmails")) !== "off";
+}
+
+/** Admin coverage digest emails are on unless explicitly turned off. */
+export async function isAdminDigestsEnabled(): Promise<boolean> {
+  return (await getSetting("adminDigests")) !== "off";
 }
 
 export const STANDARD_SLOT_DEFINITIONS = [
