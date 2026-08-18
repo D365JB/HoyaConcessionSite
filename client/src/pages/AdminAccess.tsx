@@ -1,5 +1,6 @@
 import { FormEvent, useMemo, useState } from "react";
 import { useAuth } from "@/_core/hooks/useAuth";
+import { useDocumentTitle } from "@/hooks/useDocumentTitle";
 import { trpc } from "@/lib/trpc";
 import DashboardLayout from "@/components/DashboardLayout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -20,6 +21,7 @@ function formatLastSignedIn(value: Date | string | null) {
 const EMPTY_FORM = { name: "", email: "", password: "" };
 
 export default function AdminAccess() {
+  useDocumentTitle("Admin Access · Hoyas Concession Admin");
   const { user } = useAuth();
   const [search, setSearch] = useState("");
   const [dialogOpen, setDialogOpen] = useState(false);

@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import { useLocation } from "wouter";
 import { useAuth } from "@/_core/hooks/useAuth";
+import { useDocumentTitle } from "@/hooks/useDocumentTitle";
 import { trpc } from "@/lib/trpc";
 import DashboardLayout from "@/components/DashboardLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -29,6 +30,7 @@ function formatDate(dateVal: string | Date): string {
 }
 
 export default function AdminDashboard() {
+  useDocumentTitle("Dashboard · Hoyas Concession Admin");
   const { user, loading } = useAuth();
   const [, navigate] = useLocation();
 

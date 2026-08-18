@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useLocation } from "wouter";
 import { useAuth } from "@/_core/hooks/useAuth";
+import { useDocumentTitle } from "@/hooks/useDocumentTitle";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
 import DashboardLayout from "@/components/DashboardLayout";
@@ -79,6 +80,7 @@ function printDayRoster(dateLabel: string, rows: any[]) {
 }
 
 export default function AdminCalendar() {
+  useDocumentTitle("Calendar · Hoyas Concession Admin");
   const { user, loading } = useAuth();
   const [, navigate] = useLocation();
   useEffect(() => {

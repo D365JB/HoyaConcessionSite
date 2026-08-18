@@ -1,5 +1,6 @@
 import { useState, useMemo } from "react";
 import { trpc } from "@/lib/trpc";
+import { useDocumentTitle } from "@/hooks/useDocumentTitle";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -485,6 +486,7 @@ function EventCard({
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
 export default function Home() {
+  useDocumentTitle("Volunteer Sign-Up · Hoyas Concession");
   const { data: events, isLoading, error } = trpc.events.listUpcoming.useQuery();
   const { data: currentSeason } = trpc.seasons.current.useQuery();
   const [selectedSlot, setSelectedSlot] = useState<{ id: number; role: string; startTime?: string | null; endTime?: string | null } | null>(null);

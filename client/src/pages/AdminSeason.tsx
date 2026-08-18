@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { useAuth } from "@/_core/hooks/useAuth";
+import { useDocumentTitle } from "@/hooks/useDocumentTitle";
 import { trpc } from "@/lib/trpc";
 import DashboardLayout from "@/components/DashboardLayout";
 import { Button } from "@/components/ui/button";
@@ -85,6 +86,7 @@ function downloadEventTemplate() {
 }
 
 export default function AdminSeason() {
+  useDocumentTitle("Events · Hoyas Concession Admin");
   const { user, loading } = useAuth();
   const [, navigate] = useLocation();
   const [addOpen, setAddOpen] = useState(false);

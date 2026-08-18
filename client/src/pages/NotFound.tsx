@@ -1,8 +1,10 @@
 import { Button } from "@/components/ui/button";
 import { Home24Regular as Home } from "@fluentui/react-icons";
 import { useLocation } from "wouter";
+import { useDocumentTitle } from "@/hooks/useDocumentTitle";
 
 export default function NotFound() {
+  useDocumentTitle("Page Not Found · Hoyas Concession");
   const [, setLocation] = useLocation();
 
   return (

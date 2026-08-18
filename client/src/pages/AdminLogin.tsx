@@ -1,6 +1,7 @@
 import { FormEvent, useEffect, useState } from "react";
 import { useLocation } from "wouter";
 import { useAuth } from "@/_core/hooks/useAuth";
+import { useDocumentTitle } from "@/hooks/useDocumentTitle";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,6 +10,7 @@ import { SpinnerIos20Regular as Loader2, LockClosed24Regular as LockKeyhole, Shi
 import { toast } from "sonner";
 
 export default function AdminLogin() {
+  useDocumentTitle("Admin Sign In · Hoyas Concession");
   const { user, loading } = useAuth();
   const [, navigate] = useLocation();
   const utils = trpc.useUtils();
