@@ -102,6 +102,7 @@ export default function AdminSeason() {
   const [bulkOpen, setBulkOpen] = useState(false);
   const [bulkText, setBulkText] = useState("");
   const [bulkSeason, setBulkSeason] = useState("2026");
+  const [newSeasonName, setNewSeasonName] = useState("");
   const [cronSetupDone, setCronSetupDone] = useState(false);
 
   useEffect(() => {
@@ -110,6 +111,12 @@ export default function AdminSeason() {
 
   const utils = trpc.useUtils();
   const { data: events, isLoading } = trpc.events.listAll.useQuery(undefined, { enabled: !!user && user.role === "admin" });
+  const { data: seasonList } = trpc.seasons.list.useQuery(undefined, { enabled: !!user && user.role === "admin" });
+  const { data: currentSeason } = trpc.seasons.current.useQuery();
+
+  useEffect(() => {
+    if (currentSeason?.name) { setNewSeason(currentSeason.name); setBulkSeason(currentSeason.name); }
+  }, [currentSeason?.name]);
   const { data: cronJobs, refetch: refetchCron } = trpc.cron.list.useQuery(undefined, { enabled: !!user && user.role === "admin" });
   const morningReminderJob = cronJobs?.find((j: any) => j.name === "morning-reminders");
 
@@ -125,6 +132,15 @@ export default function AdminSeason() {
 
   const createEvent = trpc.events.create.useMutation({
     onSuccess: () => { utils.events.listAll.invalidate(); utils.events.listUpcoming.invalidate(); setAddOpen(false); setNewDate(""); setNewLabel(""); setNewType("practice"); toast.success("Event added!"); },
+    onError: (e) => toast.error(e.message),
+  });
+
+  const addSeason = trpc.seasons.create.useMutation({
+    onSuccess: () => { utils.seasons.list.invalidate(); utils.seasons.current.invalidate(); setNewSeasonName(""); toast.success("Season added!"); },
+    onError: (e) => toast.error(e.message),
+  });
+  const setSeasonCurrent = trpc.seasons.setCurrent.useMutation({
+    onSuccess: () => { utils.seasons.list.invalidate(); utils.seasons.current.invalidate(); toast.success("Current season updated"); },
     onError: (e) => toast.error(e.message),
   });
 
@@ -161,6 +177,38 @@ export default function AdminSeason() {
   return (
     <DashboardLayout>
       <div className="space-y-4">
+        {/* Seasons Card */}
+        <div className="bg-white rounded-xl border border-gray-100 p-5 shadow-sm">
+          <div className="flex items-start justify-between gap-4 flex-wrap">
+            <div>
+              <h3 className="font-bold text-gray-900 text-sm">Seasons</h3>
+              <p className="text-xs text-gray-500 mt-0.5">Current: <span className="font-semibold" style={{ color: "#003087" }}>{currentSeason?.name ?? "—"}</span> · new events default to it. Click a season to make it current.</p>
+              <div className="flex flex-wrap gap-1.5 mt-2">
+                {(seasonList ?? []).map((s: any) => (
+                  <button key={s.id} onClick={() => setSeasonCurrent.mutate({ id: s.id })}
+                    className="text-xs px-2.5 py-1 rounded-full border transition-colors"
+                    style={s.isCurrent ? { backgroundColor: "#003087", color: "#fff", borderColor: "#003087" } : { backgroundColor: "#fff", color: "#003087", borderColor: "#d1d5db" }}
+                    title={s.isCurrent ? "Current season" : "Set as current"}>
+                    {s.name}{s.isCurrent ? " ✓" : ""}
+                  </button>
+                ))}
+                {(!seasonList || seasonList.length === 0) && <span className="text-xs text-gray-400">No seasons yet</span>}
+              </div>
+            </div>
+            <div className="flex items-end gap-2">
+              <div className="space-y-1">
+                <Label className="text-xs">New season</Label>
+                <Input value={newSeasonName} onChange={(e) => setNewSeasonName(e.target.value)} placeholder="2027" className="h-8 w-24 text-sm" />
+              </div>
+              <Button size="sm" className="h-8 text-xs text-white" style={{ backgroundColor: "#007a35" }}
+                onClick={() => { if (!newSeasonName.trim()) { toast.error("Enter a season name"); return; } addSeason.mutate({ name: newSeasonName.trim() }); }}
+                disabled={addSeason.isPending}>
+                {addSeason.isPending ? <Loader2 className="w-3 h-3 animate-spin" /> : <><Plus className="w-3 h-3 mr-1" />Add</>}
+              </Button>
+            </div>
+          </div>
+        </div>
+
         {/* Morning Reminders Cron Card */}
         <div className="bg-white rounded-xl border border-gray-100 p-5 shadow-sm">
           <div className="flex items-start justify-between gap-4">
@@ -283,7 +331,7 @@ export default function AdminSeason() {
 
       {/* Add Event Dialog */}
       <Dialog open={addOpen} onOpenChange={setAddOpen}>
-        <DialogContent className="max-w-sm">
+        <DialogContent className="max-w-md max-h-[85vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle style={{ color: "#003087" }}>Add Concession Event</DialogTitle>
           </DialogHeader>
@@ -319,7 +367,12 @@ export default function AdminSeason() {
             </div>
             <div className="space-y-1.5">
               <Label>Season</Label>
-              <Input value={newSeason} onChange={(e) => setNewSeason(e.target.value)} placeholder="2026" />
+              <Select value={newSeason} onValueChange={setNewSeason}>
+                <SelectTrigger><SelectValue placeholder="Select season" /></SelectTrigger>
+                <SelectContent>
+                  {(seasonList ?? []).map((s: any) => <SelectItem key={s.id} value={s.name}>{s.name}</SelectItem>)}
+                </SelectContent>
+              </Select>
             </div>
             <div className="space-y-1.5">
               <Label>Label (optional)</Label>
@@ -329,16 +382,29 @@ export default function AdminSeason() {
               <p className="text-xs text-gray-500">Practice creates the standard slots: Co-Cook ×1 (5:45–8:15 PM), Kitchen Assistant ×1 (5:45–8:15 PM), Cashier ×2 (6:15–8:45 PM).</p>
             ) : (
               <div className="space-y-2">
-                <Label>Game Day slots (spots &amp; hours per role)</Label>
+                <div className="flex items-center justify-between">
+                  <Label>Game Day slots</Label>
+                  <Button type="button" variant="outline" size="sm" className="h-7 text-xs" onClick={() => setGameConfig((c) => [...c, { role: "cashier" as const, count: 1, startTime: "17:00", endTime: "21:00" }])}>
+                    <Plus className="w-3 h-3 mr-1" /> Add slot
+                  </Button>
+                </div>
+                <div className="grid grid-cols-[1fr_3rem_auto_auto_1.5rem] items-center gap-1.5 text-[10px] uppercase tracking-wide text-gray-400 px-0.5">
+                  <span>Role</span><span>Spots</span><span>Start</span><span>End</span><span></span>
+                </div>
                 {gameConfig.map((rc, idx) => (
-                  <div key={rc.role} className="grid grid-cols-[1fr_auto_auto_auto] items-center gap-1.5 text-xs">
-                    <span className="text-gray-600">{ROLE_ROWS.find((r) => r.role === rc.role)?.label}</span>
-                    <input type="number" min={0} max={20} value={rc.count} onChange={(e) => setGameConfig((c) => c.map((x, i) => i === idx ? { ...x, count: Number(e.target.value) } : x))} className="w-14 rounded border border-gray-200 px-1.5 py-1" title="Spots" />
+                  <div key={idx} className="grid grid-cols-[1fr_3rem_auto_auto_1.5rem] items-center gap-1.5 text-xs">
+                    <select value={rc.role} onChange={(e) => setGameConfig((c) => c.map((x, i) => i === idx ? { ...x, role: e.target.value as typeof x.role } : x))} className="rounded border border-gray-200 px-1.5 py-1 bg-white">
+                      {ROLE_ROWS.map((r) => <option key={r.role} value={r.role}>{r.label}</option>)}
+                    </select>
+                    <input type="number" min={0} max={20} value={rc.count} onChange={(e) => setGameConfig((c) => c.map((x, i) => i === idx ? { ...x, count: Number(e.target.value) } : x))} className="w-12 rounded border border-gray-200 px-1.5 py-1" title="Spots" />
                     <input type="time" value={rc.startTime} onChange={(e) => setGameConfig((c) => c.map((x, i) => i === idx ? { ...x, startTime: e.target.value } : x))} className="rounded border border-gray-200 px-1 py-1" title="Start" />
                     <input type="time" value={rc.endTime} onChange={(e) => setGameConfig((c) => c.map((x, i) => i === idx ? { ...x, endTime: e.target.value } : x))} className="rounded border border-gray-200 px-1 py-1" title="End" />
+                    <button type="button" onClick={() => setGameConfig((c) => c.length > 1 ? c.filter((_, i) => i !== idx) : c)} disabled={gameConfig.length <= 1} className="text-gray-400 hover:text-red-500 disabled:opacity-30" title="Remove slot">
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
                   </div>
                 ))}
-                <p className="text-[11px] text-gray-400">Set the number of spots and shift hours per role for this game day.</p>
+                <p className="text-[11px] text-gray-400">Add a row per shift — you can add the same role more than once for different game times.</p>
               </div>
             )}
             <div className="flex gap-3">
@@ -428,7 +494,12 @@ export default function AdminSeason() {
             </Button>
             <div className="space-y-1.5">
               <Label>Season</Label>
-              <Input value={bulkSeason} onChange={(e) => setBulkSeason(e.target.value)} placeholder="2026" />
+              <Select value={bulkSeason} onValueChange={setBulkSeason}>
+                <SelectTrigger><SelectValue placeholder="Select season" /></SelectTrigger>
+                <SelectContent>
+                  {(seasonList ?? []).map((s: any) => <SelectItem key={s.id} value={s.name}>{s.name}</SelectItem>)}
+                </SelectContent>
+              </Select>
             </div>
             <div className="space-y-1.5">
               <Label>Upload CSV file (or paste below)</Label>

@@ -15,6 +15,13 @@
       "when": 1787022413488,
       "tag": "0001_chief_the_captain",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1787023245503,
+      "tag": "0002_zippy_scarecrow",
+      "breakpoints": true
     }
   ]
 }

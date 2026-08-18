@@ -25,6 +25,10 @@ import {
   upsertCronJob,
   listCronJobs,
   getActiveAdminEmails,
+  listSeasons,
+  getCurrentSeason,
+  createSeason,
+  setCurrentSeason,
 } from "./db";
 import { getSlotById } from "./db";
 import { createLocalAdminAccount, deactivateLocalAdminAccount, getLocalAdminAccountByEmail, listLocalAdminAccounts } from "./db";
@@ -158,7 +162,17 @@ export const appRouter = router({
         return { success: true };
       }),
   }),
-
+  // ─── Seasons ──────────────────────────────────────────────
+  seasons: router({
+    list: adminProcedure.query(async () => listSeasons()),
+    current: publicProcedure.query(async () => ({ name: await getCurrentSeason() })),
+    create: adminProcedure
+      .input(z.object({ name: z.string().trim().min(1).max(32) }))
+      .mutation(async ({ input }) => createSeason(input.name)),
+    setCurrent: adminProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ input }) => { await setCurrentSeason(input.id); return { success: true }; }),
+  }),
   // ─── Public: Volunteer Signup ──────────────────────────────────────────────
   volunteers: router({
     signup: publicProcedure

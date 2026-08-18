@@ -270,6 +270,21 @@ function EventCard({
     return groups;
   }, [event.slots]);
 
+  // Group by role + shift time so game days with multiple time blocks show each shift.
+  const shiftGroups = useMemo(() => {
+    const map = new Map<string, { role: string; startTime: string | null; endTime: string | null; slots: any[] }>();
+    for (const s of event.slots) {
+      const key = `${s.role}|${s.startTime ?? ""}|${s.endTime ?? ""}`;
+      const g = map.get(key) ?? { role: s.role, startTime: s.startTime ?? null, endTime: s.endTime ?? null, slots: [] as any[] };
+      g.slots.push(s);
+      map.set(key, g);
+    }
+    return Array.from(map.values()).sort((a, b) => {
+      const ra = ROLE_ORDER.indexOf(a.role), rb = ROLE_ORDER.indexOf(b.role);
+      return ra !== rb ? ra - rb : (a.startTime ?? "").localeCompare(b.startTime ?? "");
+    });
+  }, [event.slots]);
+
   const isFull = openSlots.length === 0;
 
   return (
@@ -350,12 +365,12 @@ function EventCard({
       {/* Expanded roles */}
       {expanded && (
         <div className="border-t border-gray-100 divide-y divide-gray-50">
-          {ROLE_ORDER.map((role) => {
-            const slots = groupedSlots[role] || [];
-            const meta = ROLE_META[role];
+          {shiftGroups.map((group, gi) => {
+            const slots = group.slots;
+            const meta = ROLE_META[group.role];
             if (!meta || slots.length === 0) return null;
             return (
-              <div key={role} className="p-4 sm:p-5">
+              <div key={gi} className="p-4 sm:p-5">
                 <div className="flex items-start justify-between gap-3 mb-2">
                   <div className="min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
@@ -412,6 +427,7 @@ function EventCard({
 
 export default function Home() {
   const { data: events, isLoading, error } = trpc.events.listUpcoming.useQuery();
+  const { data: currentSeason } = trpc.seasons.current.useQuery();
   const [selectedSlot, setSelectedSlot] = useState<{ id: number; role: string; startTime?: string | null; endTime?: string | null } | null>(null);
   const [selectedEvent, setSelectedEvent] = useState<{ id: number; eventDate: string | Date } | null>(null);
   const [signupOpen, setSignupOpen] = useState(false);
@@ -524,16 +540,16 @@ export default function Home() {
           </div>
           <div className="flex items-center gap-1.5 text-xs text-gray-500">
             <CalendarDays className="w-4 h-4" />
-            <span>2026 Season</span>
+            <span>{currentSeason?.name ?? "2026"} Season</span>
           </div>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2 mb-5">
+        <div className="flex flex-wrap items-center gap-2.5 mb-5">
           {([["all", "All"], ["practice", "Practices"], ["game_day", "Game Days"]] as const).map(([val, lbl]) => (
             <button
               key={val}
               onClick={() => setTypeFilter(val)}
-              className="text-xs font-medium px-3 py-1.5 rounded-full border transition-colors"
+              className="text-sm font-semibold px-5 py-2.5 rounded-full border transition-colors"
               style={typeFilter === val ? { backgroundColor: "#003087", color: "#fff", borderColor: "#003087" } : { backgroundColor: "#fff", color: "#003087", borderColor: "#d1d5db" }}
             >
               {lbl}
@@ -541,7 +557,7 @@ export default function Home() {
           ))}
           <button
             onClick={() => setOpenOnly((v) => !v)}
-            className="text-xs font-medium px-3 py-1.5 rounded-full border transition-colors ml-auto"
+            className="text-sm font-semibold px-5 py-2.5 rounded-full border transition-colors ml-auto"
             style={openOnly ? { backgroundColor: "#007a35", color: "#fff", borderColor: "#007a35" } : { backgroundColor: "#fff", color: "#007a35", borderColor: "#d1d5db" }}
           >
             {openOnly ? "✓ Open spots only" : "Open spots only"}
@@ -586,7 +602,7 @@ export default function Home() {
       <footer style={{ backgroundColor: "#003087" }} className="mt-12 py-8">
         <div className="container text-center">
           <p className="text-white font-bold text-lg mb-1" style={{ fontFamily: "Montserrat, sans-serif" }}>HOYAS YOUTH SPORTS</p>
-          <p className="text-white/60 text-sm">Concession Volunteer Program · 2026 Season</p>
+          <p className="text-white/60 text-sm">Concession Volunteer Program · {currentSeason?.name ?? "2026"} Season</p>
           <p className="text-white/40 text-xs mt-3">Questions? Contact your team coordinator.</p>
         </div>
       </footer>

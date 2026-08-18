@@ -1,6 +1,6 @@
 import { and, asc, desc, eq, gte, lte, ne, or, sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/d1";
-import { concessionEvents, cronJobs, InsertUser, localAdminAccounts, users, volunteerSlots, volunteers } from "../drizzle/schema";
+import { concessionEvents, cronJobs, InsertUser, localAdminAccounts, seasons, users, volunteerSlots, volunteers } from "../drizzle/schema";
 import { ENV } from "./_core/env";
 
 let _db: ReturnType<typeof drizzle> | null = null;
@@ -244,6 +244,42 @@ export async function getEventById(id: number) {
   return result[0];
 }
 
+// ─── Seasons ──────────────────────────────────────────────
+
+export async function listSeasons() {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(seasons).orderBy(desc(seasons.name));
+}
+
+export async function getCurrentSeason(): Promise<string> {
+  const db = await getDb();
+  if (!db) return "2026";
+  const [current] = await db.select().from(seasons).where(eq(seasons.isCurrent, true)).limit(1);
+  if (current) return current.name;
+  const [latest] = await db.select().from(seasons).orderBy(desc(seasons.name)).limit(1);
+  return latest?.name ?? "2026";
+}
+
+export async function createSeason(name: string) {
+  const db = await getDb();
+  if (!db) throw new Error("DB unavailable");
+  const trimmed = name.trim();
+  if (!trimmed) throw new Error("Season name is required");
+  const existing = await db.select({ id: seasons.id }).from(seasons).where(eq(seasons.name, trimmed)).limit(1);
+  if (existing.length) throw new Error("That season already exists");
+  const hasAny = (await db.select({ id: seasons.id }).from(seasons).limit(1)).length > 0;
+  const [result] = await db.insert(seasons).values({ name: trimmed, isCurrent: !hasAny }).returning({ id: seasons.id });
+  return { id: result.id, name: trimmed };
+}
+
+export async function setCurrentSeason(id: number) {
+  const db = await getDb();
+  if (!db) throw new Error("DB unavailable");
+  await db.update(seasons).set({ isCurrent: false });
+  await db.update(seasons).set({ isCurrent: true }).where(eq(seasons.id, id));
+}
+
 export const STANDARD_SLOT_DEFINITIONS = [
   { role: "co_cook" as const, count: 1 },
   { role: "kitchen_assistant" as const, count: 1 },
@@ -286,9 +322,13 @@ export async function createEvent(params: {
     .values({ eventDate: params.eventDate, season: params.season, label: params.label, location: params.location, eventType, isActive: true })
     .returning({ id: concessionEvents.id });
   const eventId = result.id;
+  // Unique slotIndex per role so multiple time blocks of one role don't collide.
+  const roleCounters: Record<string, number> = {};
   for (const rc of config) {
     for (let i = 0; i < rc.count; i++) {
-      await db.insert(volunteerSlots).values({ eventId, role: rc.role, slotIndex: i, isOpen: true, startTime: rc.startTime ?? null, endTime: rc.endTime ?? null });
+      const slotIndex = roleCounters[rc.role] ?? 0;
+      roleCounters[rc.role] = slotIndex + 1;
+      await db.insert(volunteerSlots).values({ eventId, role: rc.role, slotIndex, isOpen: true, startTime: rc.startTime ?? null, endTime: rc.endTime ?? null });
     }
   }
   return eventId;

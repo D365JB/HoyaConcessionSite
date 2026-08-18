@@ -55,6 +55,19 @@ export type ConcessionEvent = typeof concessionEvents.$inferSelect;
 export type InsertConcessionEvent = typeof concessionEvents.$inferInsert;
 
 /**
+ * Volunteer seasons (e.g. "2026", "2027"). Exactly one is marked current.
+ */
+export const seasons = sqliteTable("seasons", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  name: text("name").notNull().unique(),
+  isCurrent: integer("isCurrent", { mode: "boolean" }).notNull().default(false),
+  createdAt: integer("createdAt", { mode: "timestamp" }).notNull().default(sql`(unixepoch())`),
+});
+
+export type Season = typeof seasons.$inferSelect;
+export type InsertSeason = typeof seasons.$inferInsert;
+
+/**
  * Volunteer position slots per event
  */
 export const volunteerSlots = sqliteTable("volunteer_slots", {
