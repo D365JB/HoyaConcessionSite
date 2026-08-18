@@ -299,7 +299,7 @@ function EventCard({
   return (
     <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden transition-all duration-200 hover:shadow-md">
       {/* Header */}
-      <div className="p-4 sm:p-5" style={{ borderLeft: `4px solid ${isFull ? "#009A44" : "#003087"}` }}>
+      <div className="p-4 sm:p-5" style={{ borderLeft: `4px solid ${isFull ? "#d1d5db" : "#009A44"}` }}>
         <div className="flex items-start justify-between gap-3">
           <div className="flex items-center gap-3 min-w-0">
             <div className="flex-shrink-0 w-12 h-12 rounded-lg flex flex-col items-center justify-center text-white text-xs font-bold" style={{ backgroundColor: "#003087" }}>
@@ -326,12 +326,12 @@ function EventCard({
                   {filledSlots}/{totalSlots} filled
                 </span>
                 {isFull ? (
-                  <Badge className="text-xs px-2 py-0" style={{ backgroundColor: "#e6f5ec", color: "#007a35" }}>
-                    <CheckCircle2 className="w-3 h-3 mr-1" />Fully Staffed
+                  <Badge className="text-xs px-2 py-0" style={{ backgroundColor: "#f0f0f0", color: "#888" }}>
+                    <CheckCircle2 className="w-3 h-3 mr-1" />Full
                   </Badge>
                 ) : (
-                  <Badge className="text-xs px-2 py-0" style={{ backgroundColor: "#e8eef7", color: "#003087" }}>
-                    {openSlots.length} open
+                  <Badge className="text-xs px-2 py-0 font-semibold" style={{ backgroundColor: "#e6f5ec", color: "#007a35" }}>
+                    ● {openSlots.length} {openSlots.length === 1 ? "spot" : "spots"} open
                   </Badge>
                 )}
               </div>
@@ -442,11 +442,9 @@ export default function Home() {
   const [signupOpen, setSignupOpen] = useState(false);
   const [successEvent, setSuccessEvent] = useState<string | null>(null);
   const [typeFilter, setTypeFilter] = useState<"all" | "practice" | "game_day">("all");
-  const [openOnly, setOpenOnly] = useState(true);
 
   const filteredEvents = (events ?? []).filter((e: any) => {
     if (typeFilter !== "all" && e.eventType !== typeFilter) return false;
-    if (openOnly && !(e.slots ?? []).some((s: any) => s.isOpen)) return false;
     return true;
   });
 
@@ -565,14 +563,6 @@ export default function Home() {
               {lbl}
             </button>
           ))}
-          <button
-            onClick={() => setOpenOnly((v) => !v)}
-            aria-pressed={openOnly}
-            className="text-sm font-semibold px-5 py-2.5 rounded-full border transition-colors ml-auto"
-            style={openOnly ? { backgroundColor: "#007a35", color: "#fff", borderColor: "#007a35" } : { backgroundColor: "#fff", color: "#007a35", borderColor: "#d1d5db" }}
-          >
-            {openOnly ? "✓ Open spots only" : "Open spots only"}
-          </button>
         </div>
 
         {isLoading && (
