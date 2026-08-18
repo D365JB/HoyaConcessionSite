@@ -47,9 +47,9 @@ export default function AdminLogin() {
       <main className="flex flex-1 items-center justify-center p-5 sm:p-6">
         <section className="w-full max-w-sm rounded-2xl bg-white p-7 shadow-lg sm:p-8">
           <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-full" style={{ backgroundColor: "#e8eef7" }}><ShieldCheck className="h-8 w-8" style={{ color: "#003087" }} /></div>
-          <div className="mb-6 text-center"><h2 className="text-2xl font-bold" style={{ color: "#003087", fontFamily: "Montserrat, sans-serif" }}>Admin Sign In</h2><p className="mt-2 text-sm leading-5 text-gray-500">Use the email address and password assigned by a Hoyas Concession administrator.</p></div>
+          <div className="mb-6 text-center"><h2 className="text-2xl font-bold" style={{ color: "#003087", fontFamily: "Montserrat, sans-serif" }}>Admin Sign In</h2><p className="mt-2 text-sm leading-5 text-gray-500">Use the username and password assigned by a Hoyas Concession administrator.</p></div>
           <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="space-y-1.5"><Label htmlFor="email">Email address</Label><Input id="email" type="email" required autoComplete="email" value={email} onChange={(event) => setEmail(event.target.value)} /></div>
+            <div className="space-y-1.5"><Label htmlFor="email">Username</Label><Input id="email" type="text" required autoComplete="username" value={email} onChange={(event) => setEmail(event.target.value)} /></div>
             <div className="space-y-1.5"><Label htmlFor="password">Password</Label><div className="relative"><LockKeyhole className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" /><Input id="password" className="pl-9" type="password" required autoComplete="current-password" value={password} onChange={(event) => setPassword(event.target.value)} /></div></div>
             <Button type="submit" className="h-11 w-full font-semibold text-white btn-active-scale" style={{ backgroundColor: "#003087" }} disabled={login.isPending}>{login.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Sign In</Button>
           </form>

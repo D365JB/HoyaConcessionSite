@@ -67,7 +67,7 @@ export async function ensureBootstrapLocalAdmin() {
   if (await countActiveLocalAdminAccounts()) return false;
 
   await createLocalAdminAccount({
-    name: "Site Administrator",
+    name: "Hoya Board",
     email,
     passwordHash: await hashPassword(password),
   });

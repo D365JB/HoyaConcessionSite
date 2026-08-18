@@ -52,7 +52,7 @@ export const appRouter = router({
   auth: router({
     me: publicProcedure.query((opts) => (opts.ctx.user ? safeUser(opts.ctx.user) : null)),
     login: publicProcedure
-      .input(z.object({ email: z.string().email(), password: z.string().min(1).max(256) }))
+      .input(z.object({ email: z.string().trim().min(1).max(256), password: z.string().min(1).max(256) }))
       .mutation(async ({ input, ctx }) => {
         await ensureBootstrapLocalAdmin();
         const result = await getLocalAdminAccountByEmail(input.email);
