@@ -2,7 +2,7 @@ import nodemailer from "nodemailer";
 import type { Volunteer, ConcessionEvent, VolunteerSlot } from "../drizzle/schema";
 
 type WorkerEmailBinding = {
-  send(message: { to: string | string[]; from: string; subject: string; html: string; text?: string }): Promise<void>;
+  send(message: { to: string | string[]; from: string; subject: string; html: string; text?: string; replyTo?: string }): Promise<void>;
 };
 
 let workerEmail: WorkerEmailBinding | null = null;
@@ -53,8 +53,8 @@ function getTransporter() {
   if (workerEmail && workerEmailFrom) {
     return {
       transporter: {
-        sendMail: async (message: { to: string | string[]; subject: string; html: string }) =>
-          workerEmail!.send({ to: message.to, from: workerEmailFrom!, subject: message.subject, html: message.html }),
+        sendMail: async (message: { to: string | string[]; subject: string; html: string; replyTo?: string }) =>
+          workerEmail!.send({ to: message.to, from: workerEmailFrom!, subject: message.subject, html: message.html, replyTo: message.replyTo }),
       },
       from: workerEmailFrom,
     };
@@ -129,7 +129,7 @@ export async function sendConfirmationEmail(
               <li>Training will be provided</li>
             </ul>
           </div>
-          <p style="color:#666;font-size:13px;">Questions? Reply to this email or contact your team coordinator.</p>
+          <p style="color:#666;font-size:13px;">Can't make your shift, or have a question? Just reply to this email and a coordinator will take care of it.</p>
         </td></tr>
         <tr><td style="background:#003087;padding:16px;text-align:center;">
           <p style="color:#ffffff;margin:0;font-size:12px;">© 2026 Hoyas Youth Sports · Concession Volunteer Program</p>
@@ -144,6 +144,7 @@ export async function sendConfirmationEmail(
     from: t.from,
     to: volunteer.email,
     subject: `✅ Confirmed: Hoyas Concession Volunteer – ${dateStr}`,
+    replyTo: process.env.ADMIN_EMAIL || undefined,
     html,
   });
 }
@@ -215,6 +216,7 @@ export async function sendAdminNewSignupEmail(
     from: t.from,
     to: allRecipients,
     subject: `🆕 New Volunteer: ${volunteer.parentName} – ${roleLabel} on ${dateStr}`,
+    replyTo: volunteer.email,
     html,
   });
 }
@@ -277,6 +279,75 @@ export async function sendReminderEmail(
     from: t.from,
     to: volunteer.email,
     subject: `⏰ Reminder: Hoyas Concession Volunteer TONIGHT – ${roleLabel}`,
+    replyTo: process.env.ADMIN_EMAIL || undefined,
+    html,
+  });
+}
+
+/** Sent to the volunteer when an admin marks them checked-in or no-show for a shift. */
+export async function sendStatusEmail(
+  volunteer: Volunteer,
+  event: ConcessionEvent,
+  slot: VolunteerSlot | undefined,
+  status: "checked_in" | "no_show"
+) {
+  const t = getTransporter();
+  if (!t) return;
+
+  const roleLabel = slot ? (ROLE_LABELS[slot.role] ?? slot.role) : "Volunteer";
+  const roleTime = slotTimeRange(slot);
+  const dateStr = formatDate(event.eventDate);
+
+  const isCheckIn = status === "checked_in";
+  const accent = isCheckIn ? "#009A44" : "#c62828";
+  const banner = isCheckIn ? "CHECKED IN — THANK YOU!" : "WE MISSED YOU";
+  const subject = isCheckIn
+    ? `✅ Checked in — thanks for volunteering, ${volunteer.parentName}!`
+    : `We missed you at the Hoyas concession stand`;
+  const heading = isCheckIn
+    ? `Thanks for being here, ${volunteer.parentName}!`
+    : `Hi ${volunteer.parentName}, we missed you`;
+  const body = isCheckIn
+    ? `You're all checked in for your shift today. Thank you for giving your time to support our Hoyas athletes — we truly appreciate you!`
+    : `Our records show you were signed up to volunteer today but weren't able to check in. We hope everything is okay! If this was a mistake or something came up, just reply to this email and let us know.`;
+
+  const html = `
+<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"></head>
+<body style="margin:0;padding:0;background:#f4f4f4;font-family:Arial,sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#f4f4f4;padding:20px 0;">
+    <tr><td align="center">
+      <table width="600" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:8px;overflow:hidden;max-width:600px;width:100%;">
+        <tr><td style="background:#003087;padding:24px 32px;text-align:center;">
+          <h1 style="color:#ffffff;margin:0;font-size:24px;font-weight:bold;">HOYAS CONCESSION</h1>
+          <p style="color:${accent};margin:4px 0 0;font-size:14px;font-weight:600;letter-spacing:1px;">${banner}</p>
+        </td></tr>
+        <tr><td style="padding:32px;">
+          <h2 style="color:#003087;margin:0 0 16px;">${heading}</h2>
+          <p style="color:#333;line-height:1.6;">${body}</p>
+          <table width="100%" cellpadding="8" cellspacing="0" style="background:#f8f9fa;border-radius:6px;margin:16px 0;">
+            <tr><td style="color:#666;font-size:13px;width:40%;">Date</td><td style="color:#003087;font-weight:bold;">${dateStr}</td></tr>
+            <tr><td style="color:#666;font-size:13px;">Role</td><td style="color:#003087;font-weight:bold;">${roleLabel}</td></tr>
+            ${roleTime ? `<tr><td style="color:#666;font-size:13px;">Shift Time</td><td style="color:#003087;font-weight:bold;">${roleTime}</td></tr>` : ""}
+            ${event.location ? `<tr><td style="color:#666;font-size:13px;">Location</td><td style="color:#003087;font-weight:bold;">${event.location}</td></tr>` : ""}
+          </table>
+          <p style="color:#666;font-size:13px;">Questions? Just reply to this email and a coordinator will help. Go Hoyas! 🏈</p>
+        </td></tr>
+        <tr><td style="background:#003087;padding:16px;text-align:center;">
+          <p style="color:#ffffff;margin:0;font-size:12px;">© 2026 Hoyas Youth Sports · Concession Volunteer Program</p>
+        </td></tr>
+      </table>
+    </td></tr>
+  </table>
+</body>
+</html>`;
+
+  await t.transporter.sendMail({
+    from: t.from,
+    to: volunteer.email,
+    subject,
+    replyTo: process.env.ADMIN_EMAIL || undefined,
     html,
   });
 }

@@ -68,6 +68,17 @@ export type Season = typeof seasons.$inferSelect;
 export type InsertSeason = typeof seasons.$inferInsert;
 
 /**
+ * Simple key/value application settings (e.g. notification toggles).
+ */
+export const appSettings = sqliteTable("app_settings", {
+  key: text("key").primaryKey(),
+  value: text("value").notNull(),
+  updatedAt: integer("updatedAt", { mode: "timestamp" }).notNull().default(sql`(unixepoch())`).$onUpdate(() => new Date()),
+});
+
+export type AppSetting = typeof appSettings.$inferSelect;
+
+/**
  * Volunteer position slots per event
  */
 export const volunteerSlots = sqliteTable("volunteer_slots", {

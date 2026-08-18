@@ -1,6 +1,6 @@
 import { and, asc, desc, eq, gte, lte, ne, or, sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/d1";
-import { concessionEvents, cronJobs, InsertUser, localAdminAccounts, seasons, users, volunteerSlots, volunteers } from "../drizzle/schema";
+import { appSettings, concessionEvents, cronJobs, InsertUser, localAdminAccounts, seasons, users, volunteerSlots, volunteers } from "../drizzle/schema";
 import { ENV } from "./_core/env";
 
 let _db: ReturnType<typeof drizzle> | null = null;
@@ -278,6 +278,31 @@ export async function setCurrentSeason(id: number) {
   if (!db) throw new Error("DB unavailable");
   await db.update(seasons).set({ isCurrent: false });
   await db.update(seasons).set({ isCurrent: true }).where(eq(seasons.id, id));
+}
+
+// ─── App settings (key/value) ──────────────────────────────────
+
+export async function getSetting(key: string): Promise<string | null> {
+  const db = await getDb();
+  if (!db) return null;
+  const [row] = await db.select().from(appSettings).where(eq(appSettings.key, key)).limit(1);
+  return row?.value ?? null;
+}
+
+export async function setSetting(key: string, value: string) {
+  const db = await getDb();
+  if (!db) throw new Error("DB unavailable");
+  await db.insert(appSettings).values({ key, value }).onConflictDoUpdate({ target: appSettings.key, set: { value } });
+}
+
+/** Admin per-signup notifications are on unless explicitly turned off. */
+export async function isAdminNotificationsEnabled(): Promise<boolean> {
+  return (await getSetting("adminSignupNotifications")) !== "off";
+}
+
+/** Volunteer check-in / no-show emails are on unless explicitly turned off. */
+export async function isVolunteerStatusEmailsEnabled(): Promise<boolean> {
+  return (await getSetting("volunteerStatusEmails")) !== "off";
 }
 
 export const STANDARD_SLOT_DEFINITIONS = [

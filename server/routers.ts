@@ -29,10 +29,14 @@ import {
   getCurrentSeason,
   createSeason,
   setCurrentSeason,
+  getSetting,
+  setSetting,
+  isAdminNotificationsEnabled,
+  isVolunteerStatusEmailsEnabled,
 } from "./db";
 import { getSlotById } from "./db";
 import { createLocalAdminAccount, deactivateLocalAdminAccount, getLocalAdminAccountByEmail, listLocalAdminAccounts } from "./db";
-import { sendConfirmationEmail, sendReminderEmail, sendAdminNewSignupEmail } from "./email";
+import { sendConfirmationEmail, sendReminderEmail, sendAdminNewSignupEmail, sendStatusEmail } from "./email";
 import { createHeartbeatJob, deleteHeartbeatJob } from "./_core/heartbeat";
 import { createLocalAdminSession, ensureBootstrapLocalAdmin, getLocalSessionMaxAgeMs, hashPassword, LOCAL_ADMIN_COOKIE, verifyPassword } from "./localAuth";
 
@@ -172,8 +176,25 @@ export const appRouter = router({
     setCurrent: adminProcedure
       .input(z.object({ id: z.number() }))
       .mutation(async ({ input }) => { await setCurrentSeason(input.id); return { success: true }; }),
-  }),
-  // ─── Public: Volunteer Signup ──────────────────────────────────────────────
+  }),  // ─── Admin: Notification settings ────────────────────────────
+  settings: router({
+    getNotifications: adminProcedure.query(async () => ({
+      adminSignupNotifications: (await getSetting("adminSignupNotifications")) !== "off",
+      volunteerStatusEmails: (await getSetting("volunteerStatusEmails")) !== "off",
+    })),
+    setNotifications: adminProcedure
+      .input(z.object({
+        adminSignupNotifications: z.boolean().optional(),
+        volunteerStatusEmails: z.boolean().optional(),
+      }))
+      .mutation(async ({ input }) => {
+        if (input.adminSignupNotifications !== undefined)
+          await setSetting("adminSignupNotifications", input.adminSignupNotifications ? "on" : "off");
+        if (input.volunteerStatusEmails !== undefined)
+          await setSetting("volunteerStatusEmails", input.volunteerStatusEmails ? "on" : "off");
+        return { success: true };
+      }),
+  }),  // ─── Public: Volunteer Signup ──────────────────────────────────────────────
   volunteers: router({
     signup: publicProcedure
       .input(
@@ -212,8 +233,10 @@ export const appRouter = router({
               console.error("[signup] confirmation email failed", error);
             }
             try {
-              const adminEmails = await getActiveAdminEmails();
-              await sendAdminNewSignupEmail(volunteer, event, slot ?? undefined, adminEmails);
+              if (await isAdminNotificationsEnabled()) {
+                const adminEmails = await getActiveAdminEmails();
+                await sendAdminNewSignupEmail(volunteer, event, slot ?? undefined, adminEmails);
+              }
             } catch (error) {
               console.error("[signup] admin notification failed", error);
             }
@@ -253,8 +276,26 @@ export const appRouter = router({
           status: z.enum(["confirmed", "checked_in", "completed", "no_show", "canceled"]),
         })
       )
-      .mutation(async ({ input }) => {
+      .mutation(async ({ input, ctx }) => {
         await updateVolunteerStatus(input.id, input.status);
+        // Email the volunteer when checked in or marked no-show.
+        if (input.status === "checked_in" || input.status === "no_show") {
+          const statusForEmail = input.status;
+          const notify = (async () => {
+            try {
+              if (!(await isVolunteerStatusEmailsEnabled())) return;
+              const volunteer = await getVolunteerById(input.id);
+              if (!volunteer) return;
+              const event = await getEventById(volunteer.eventId);
+              if (!event) return;
+              const slot = await getSlotById(volunteer.slotId).catch(() => undefined);
+              await sendStatusEmail(volunteer, event, slot ?? undefined, statusForEmail);
+            } catch (error) {
+              console.error("[updateStatus] status email failed", error);
+            }
+          })();
+          if (ctx.waitUntil) ctx.waitUntil(notify);
+        }
         return { success: true };
       }),
 

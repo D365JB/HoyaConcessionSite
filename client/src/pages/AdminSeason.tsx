@@ -10,7 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Add24Regular as Plus, Delete24Regular as Trash2, Edit24Regular as Edit2, SpinnerIos20Regular as Loader2, CalendarLtr24Regular as CalendarDays, ToggleLeft24Regular as ToggleLeft, ToggleRight24Regular as ToggleRight, Alert24Regular as Bell, AlertOff24Regular as BellOff, CheckmarkCircle24Regular as CheckCircle2, ArrowUpload24Regular as Upload, ArrowDownload24Regular as Download } from "@fluentui/react-icons";
+import { Add24Regular as Plus, Delete24Regular as Trash2, Edit24Regular as Edit2, SpinnerIos20Regular as Loader2, CalendarLtr24Regular as CalendarDays, ToggleLeft24Regular as ToggleLeft, ToggleRight24Regular as ToggleRight, Alert24Regular as Bell, AlertOff24Regular as BellOff, CheckmarkCircle24Regular as CheckCircle2, ArrowUpload24Regular as Upload, ArrowDownload24Regular as Download, Mail24Regular as Mail } from "@fluentui/react-icons";
 
 const LOCATIONS = ["Lost Mountain Park", "Harrison High School"];
 const ROLE_ROWS = [
@@ -130,6 +130,12 @@ export default function AdminSeason() {
     onError: (e) => toast.error(`Failed to disable: ${e.message}`),
   });
 
+  const { data: notifSettings } = trpc.settings.getNotifications.useQuery(undefined, { enabled: !!user && user.role === "admin" });
+  const setNotif = trpc.settings.setNotifications.useMutation({
+    onSuccess: () => { utils.settings.getNotifications.invalidate(); toast.success("Notification settings updated"); },
+    onError: (e) => toast.error(e.message),
+  });
+
   const createEvent = trpc.events.create.useMutation({
     onSuccess: () => { utils.events.listAll.invalidate(); utils.events.listUpcoming.invalidate(); setAddOpen(false); setNewDate(""); setNewLabel(""); setNewType("practice"); toast.success("Event added!"); },
     onError: (e) => toast.error(e.message),
@@ -243,9 +249,48 @@ export default function AdminSeason() {
               )}
             </div>
           </div>
-          <p className="text-xs text-amber-600 mt-3 pt-3 border-t border-gray-100">
-            Note: SMTP credentials must be configured in Settings → Secrets for emails to send.
+          <p className="text-xs text-gray-400 mt-3 pt-3 border-t border-gray-100">
+            Emails send automatically from noreply@hoyaconcessions.com — no extra setup needed.
           </p>
+        </div>
+
+        {/* Email Notification Settings Card */}
+        <div className="bg-white rounded-xl border border-gray-100 p-5 shadow-sm">
+          <div className="flex items-start gap-3 mb-3">
+            <div className="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0" style={{ backgroundColor: "#eef2ff" }}>
+              <Mail className="w-5 h-5" style={{ color: "#003087" }} />
+            </div>
+            <div>
+              <h3 className="font-bold text-gray-900 text-sm">Email Notifications</h3>
+              <p className="text-xs text-gray-500 mt-0.5">Control which automatic emails the app sends.</p>
+            </div>
+          </div>
+          <div className="divide-y divide-gray-100">
+            <div className="flex items-center justify-between py-3 gap-4">
+              <div>
+                <p className="text-sm font-medium text-gray-900">Admin sign-up alerts</p>
+                <p className="text-xs text-gray-500">Email admins each time a volunteer signs up.</p>
+              </div>
+              <Button size="sm" variant="outline"
+                className={`text-xs h-8 flex-shrink-0 ${notifSettings?.adminSignupNotifications ? "border-green-200 text-green-600 hover:bg-green-50" : "border-gray-200 text-gray-400 hover:bg-gray-50"}`}
+                disabled={setNotif.isPending || !notifSettings}
+                onClick={() => setNotif.mutate({ adminSignupNotifications: !notifSettings?.adminSignupNotifications })}>
+                {notifSettings?.adminSignupNotifications ? <><ToggleRight className="w-4 h-4 mr-1" />On</> : <><ToggleLeft className="w-4 h-4 mr-1" />Off</>}
+              </Button>
+            </div>
+            <div className="flex items-center justify-between py-3 gap-4">
+              <div>
+                <p className="text-sm font-medium text-gray-900">Volunteer check-in / no-show emails</p>
+                <p className="text-xs text-gray-500">Email the volunteer when you tap Check In or No Show.</p>
+              </div>
+              <Button size="sm" variant="outline"
+                className={`text-xs h-8 flex-shrink-0 ${notifSettings?.volunteerStatusEmails ? "border-green-200 text-green-600 hover:bg-green-50" : "border-gray-200 text-gray-400 hover:bg-gray-50"}`}
+                disabled={setNotif.isPending || !notifSettings}
+                onClick={() => setNotif.mutate({ volunteerStatusEmails: !notifSettings?.volunteerStatusEmails })}>
+                {notifSettings?.volunteerStatusEmails ? <><ToggleRight className="w-4 h-4 mr-1" />On</> : <><ToggleLeft className="w-4 h-4 mr-1" />Off</>}
+              </Button>
+            </div>
+          </div>
         </div>
 
         <div className="flex items-center justify-between">

@@ -433,7 +433,7 @@ export default function Home() {
   const [signupOpen, setSignupOpen] = useState(false);
   const [successEvent, setSuccessEvent] = useState<string | null>(null);
   const [typeFilter, setTypeFilter] = useState<"all" | "practice" | "game_day">("all");
-  const [openOnly, setOpenOnly] = useState(false);
+  const [openOnly, setOpenOnly] = useState(true);
 
   const filteredEvents = (events ?? []).filter((e: any) => {
     if (typeFilter !== "all" && e.eventType !== typeFilter) return false;
