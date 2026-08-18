@@ -10,7 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Add24Regular as Plus, Delete24Regular as Trash2, Edit24Regular as Edit2, SpinnerIos20Regular as Loader2, CalendarLtr24Regular as CalendarDays, ToggleLeft24Regular as ToggleLeft, ToggleRight24Regular as ToggleRight, Alert24Regular as Bell, AlertOff24Regular as BellOff, CheckmarkCircle24Regular as CheckCircle2, ArrowUpload24Regular as Upload, ArrowDownload24Regular as Download, Mail24Regular as Mail } from "@fluentui/react-icons";
+import { Add24Regular as Plus, Delete24Regular as Trash2, Edit24Regular as Edit2, SpinnerIos20Regular as Loader2, CalendarLtr24Regular as CalendarDays, ToggleLeft24Regular as ToggleLeft, ToggleRight24Regular as ToggleRight, ArrowUpload24Regular as Upload, ArrowDownload24Regular as Download, Mail24Regular as Mail } from "@fluentui/react-icons";
 
 const LOCATIONS = ["Lost Mountain Park", "Harrison High School"];
 const ROLE_ROWS = [
@@ -215,45 +215,6 @@ export default function AdminSeason() {
           </div>
         </div>
 
-        {/* Morning Reminders Cron Card */}
-        <div className="bg-white rounded-xl border border-gray-100 p-5 shadow-sm">
-          <div className="flex items-start justify-between gap-4">
-            <div className="flex items-start gap-3">
-              <div className="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0" style={{ backgroundColor: morningReminderJob?.taskUid ? "#e6f5ec" : "#f5f5f5" }}>
-                {morningReminderJob?.taskUid ? <Bell className="w-5 h-5" style={{ color: "#009A44" }} /> : <BellOff className="w-5 h-5 text-gray-400" />}
-              </div>
-              <div>
-                <h3 className="font-bold text-gray-900 text-sm">Morning Reminder Emails</h3>
-                <p className="text-xs text-gray-500 mt-0.5">Automatically emails volunteers at 8:30 AM on their shift day.</p>
-                {morningReminderJob?.taskUid ? (
-                  <div className="flex items-center gap-1.5 mt-1.5">
-                    <CheckCircle2 className="w-3.5 h-3.5" style={{ color: "#009A44" }} />
-                    <span className="text-xs font-medium" style={{ color: "#007a35" }}>Active — runs daily at 8:30 AM ET</span>
-                  </div>
-                ) : (
-                  <p className="text-xs text-orange-600 mt-1.5 font-medium">Not scheduled — click Enable to activate</p>
-                )}
-              </div>
-            </div>
-            <div className="flex-shrink-0">
-              {morningReminderJob?.taskUid ? (
-                <Button size="sm" variant="outline" className="text-xs h-8 border-red-200 text-red-500 hover:bg-red-50"
-                  onClick={() => deleteCron.mutate()} disabled={deleteCron.isPending}>
-                  {deleteCron.isPending ? <Loader2 className="w-3 h-3 animate-spin" /> : <><BellOff className="w-3 h-3 mr-1" />Disable</>}
-                </Button>
-              ) : (
-                <Button size="sm" className="text-xs h-8 text-white" style={{ backgroundColor: "#007a35" }}
-                  onClick={() => setupCron.mutate()} disabled={setupCron.isPending}>
-                  {setupCron.isPending ? <Loader2 className="w-3 h-3 animate-spin" /> : <><Bell className="w-3 h-3 mr-1" />Enable</>}
-                </Button>
-              )}
-            </div>
-          </div>
-          <p className="text-xs text-gray-400 mt-3 pt-3 border-t border-gray-100">
-            Emails send automatically from noreply@hoyaconcessions.com — no extra setup needed.
-          </p>
-        </div>
-
         {/* Email Notification Settings Card */}
         <div className="bg-white rounded-xl border border-gray-100 p-5 shadow-sm">
           <div className="flex items-start gap-3 mb-3">
@@ -266,6 +227,18 @@ export default function AdminSeason() {
             </div>
           </div>
           <div className="divide-y divide-gray-100">
+            <div className="flex items-center justify-between py-3 gap-4">
+              <div>
+                <p className="text-sm font-medium text-gray-900">Morning reminder emails</p>
+                <p className="text-xs text-gray-500">Email volunteers at 8:30 AM ET on their shift day.</p>
+              </div>
+              <Button size="sm" variant="outline"
+                className={`text-xs h-8 flex-shrink-0 ${morningReminderJob?.taskUid ? "border-green-200 text-green-600 hover:bg-green-50" : "border-gray-200 text-gray-400 hover:bg-gray-50"}`}
+                disabled={setupCron.isPending || deleteCron.isPending}
+                onClick={() => (morningReminderJob?.taskUid ? deleteCron.mutate() : setupCron.mutate())}>
+                {setupCron.isPending || deleteCron.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : morningReminderJob?.taskUid ? <><ToggleRight className="w-4 h-4 mr-1" />On</> : <><ToggleLeft className="w-4 h-4 mr-1" />Off</>}
+              </Button>
+            </div>
             <div className="flex items-center justify-between py-3 gap-4">
               <div>
                 <p className="text-sm font-medium text-gray-900">Admin sign-up alerts</p>
@@ -291,6 +264,9 @@ export default function AdminSeason() {
               </Button>
             </div>
           </div>
+          <p className="text-xs text-gray-400 mt-3 pt-3 border-t border-gray-100">
+            Emails send automatically from noreply@hoyaconcessions.com — no extra setup needed.
+          </p>
         </div>
 
         <div className="flex items-center justify-between">
