@@ -60,6 +60,43 @@ function slotArriveBy(slot?: { startTime?: string | null; role?: string } | null
   return slot?.role === "cashier" ? "Arrive by 6:05 PM" : "Arrive by 5:35 PM";
 }
 
+const ROLE_FALLBACK_TIME: Record<string, { start: string; end: string }> = {
+  co_cook: { start: "17:45", end: "20:15" },
+  kitchen_assistant: { start: "17:45", end: "20:15" },
+  cashier: { start: "18:15", end: "20:45" },
+};
+
+function icsStampLocal(d: Date): string {
+  const p = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}${p(d.getMonth() + 1)}${p(d.getDate())}T${p(d.getHours())}${p(d.getMinutes())}00`;
+}
+
+function downloadShiftIcs(s: { title: string; location?: string; start: Date; end: Date; uid: string }) {
+  const esc = (v: string) => (v ?? "").replace(/([,;\\])/g, "\\$1").replace(/\n/g, "\\n");
+  const lines = [
+    "BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//Hoyas Concession//EN", "CALSCALE:GREGORIAN",
+    "BEGIN:VEVENT",
+    `UID:${s.uid}`,
+    `DTSTAMP:${icsStampLocal(new Date())}`,
+    `DTSTART:${icsStampLocal(s.start)}`,
+    `DTEND:${icsStampLocal(s.end)}`,
+    `SUMMARY:${esc(s.title)}`,
+    "DESCRIPTION:Arrive 10 minutes early. Reply to your confirmation email with questions.",
+    s.location ? `LOCATION:${esc(s.location)}` : "",
+    "BEGIN:VALARM", "TRIGGER:-PT2H", "ACTION:DISPLAY", "DESCRIPTION:Hoyas Concession shift", "END:VALARM",
+    "END:VEVENT", "END:VCALENDAR",
+  ].filter(Boolean);
+  const blob = new Blob([lines.join("\r\n")], { type: "text/calendar;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "hoyas-concession-shift.ics";
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}
+
 const signupSchema = z.object({
   parentName: z.string().min(2, "Parent name is required"),
   email: z.string().email("Valid email required"),
@@ -442,9 +479,9 @@ export default function Home() {
   const { data: events, isLoading, error } = trpc.events.listUpcoming.useQuery();
   const { data: currentSeason } = trpc.seasons.current.useQuery();
   const [selectedSlot, setSelectedSlot] = useState<{ id: number; role: string; startTime?: string | null; endTime?: string | null } | null>(null);
-  const [selectedEvent, setSelectedEvent] = useState<{ id: number; eventDate: string | Date } | null>(null);
+  const [selectedEvent, setSelectedEvent] = useState<{ id: number; eventDate: string | Date; location?: string | null } | null>(null);
   const [signupOpen, setSignupOpen] = useState(false);
-  const [successEvent, setSuccessEvent] = useState<string | null>(null);
+  const [success, setSuccess] = useState<{ dateStr: string; title: string; location?: string; start: Date; end: Date; uid: string } | null>(null);
   const [typeFilter, setTypeFilter] = useState<"all" | "practice" | "game_day">("all");
 
   const filteredEvents = (events ?? []).filter((e: any) => {
@@ -459,7 +496,21 @@ export default function Home() {
   };
 
   const handleSignupSuccess = () => {
-    setSuccessEvent(selectedEvent ? formatEventDate(selectedEvent.eventDate) : "");
+    if (!selectedEvent || !selectedSlot) { setSuccess(null); return; }
+    const role = selectedSlot.role;
+    const fb = ROLE_FALLBACK_TIME[role] ?? ROLE_FALLBACK_TIME.cashier;
+    const dOnly = (typeof selectedEvent.eventDate === "string" ? selectedEvent.eventDate : selectedEvent.eventDate.toISOString()).slice(0, 10);
+    const [y, m, d] = dOnly.split("-").map(Number);
+    const [sh, sm] = (selectedSlot.startTime || fb.start).split(":").map(Number);
+    const [eh, em] = (selectedSlot.endTime || fb.end).split(":").map(Number);
+    setSuccess({
+      dateStr: formatEventDate(selectedEvent.eventDate),
+      title: `Hoyas Concession — ${ROLE_META[role]?.label ?? role}`,
+      location: selectedEvent.location ?? undefined,
+      start: new Date(y, m - 1, d, sh, sm),
+      end: new Date(y, m - 1, d, eh, em),
+      uid: `hoyas-${selectedEvent.id}-${selectedSlot.id}-${Date.now()}@hoyaconcessions.com`,
+    });
   };
 
   return (
@@ -525,15 +576,18 @@ export default function Home() {
       </div>
 
       {/* Success Banner */}
-      {successEvent && (
+      {success && (
         <div className="container mt-6">
           <div className="rounded-xl p-4 flex items-start gap-3" style={{ backgroundColor: "#e6f5ec", border: "1px solid #009A44" }}>
             <CheckCircle2 className="w-5 h-5 flex-shrink-0 mt-0.5" style={{ color: "#009A44" }} />
-            <div>
+            <div className="min-w-0">
               <p className="font-semibold" style={{ color: "#007a35" }}>You're signed up!</p>
-              <p className="text-sm text-gray-700">You've been registered for <strong>{successEvent}</strong>. Check your email for a confirmation.</p>
+              <p className="text-sm text-gray-700">You've been registered for <strong>{success.dateStr}</strong>. Check your email for a confirmation.</p>
+              <button onClick={() => downloadShiftIcs(success)} className="mt-2 inline-flex items-center gap-1.5 text-sm font-semibold text-white rounded-lg px-3 py-1.5" style={{ backgroundColor: "#003087" }}>
+                <CalendarDays className="w-4 h-4" /> Add to calendar
+              </button>
             </div>
-            <button onClick={() => setSuccessEvent(null)} aria-label="Dismiss confirmation" className="ml-auto text-gray-400 hover:text-gray-600">✕</button>
+            <button onClick={() => setSuccess(null)} aria-label="Dismiss confirmation" className="ml-auto text-gray-400 hover:text-gray-600">✕</button>
           </div>
         </div>
       )}

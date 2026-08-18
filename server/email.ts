@@ -2,7 +2,7 @@ import nodemailer from "nodemailer";
 import type { Volunteer, ConcessionEvent, VolunteerSlot } from "../drizzle/schema";
 
 type WorkerEmailBinding = {
-  send(message: { to: string | string[]; from: string; subject: string; html: string; text?: string; replyTo?: string }): Promise<void>;
+  send(message: { to: string | string[]; from: string; subject: string; html: string; text?: string; replyTo?: string; attachments?: { content: string; filename: string; type: string; disposition?: string }[] }): Promise<void>;
 };
 
 let workerEmail: WorkerEmailBinding | null = null;
@@ -53,8 +53,8 @@ function getTransporter() {
   if (workerEmail && workerEmailFrom) {
     return {
       transporter: {
-        sendMail: async (message: { to: string | string[]; subject: string; html: string; replyTo?: string }) =>
-          workerEmail!.send({ to: message.to, from: workerEmailFrom!, subject: message.subject, html: message.html, replyTo: message.replyTo }),
+        sendMail: async (message: { to: string | string[]; subject: string; html: string; replyTo?: string; attachments?: { filename: string; content: string; contentType: string; encoding?: string }[] }) =>
+          workerEmail!.send({ to: message.to, from: workerEmailFrom!, subject: message.subject, html: message.html, replyTo: message.replyTo, attachments: message.attachments?.map((a) => ({ content: a.content, filename: a.filename, type: a.contentType, disposition: "attachment" })) }),
       },
       from: workerEmailFrom,
     };
@@ -84,6 +84,44 @@ function formatDate(dateVal: string | Date): string {
   const [y, m, d] = s.slice(0, 10).split("-").map(Number);
   const dt = new Date(Date.UTC(y, m - 1, d, 12, 0, 0));
   return dt.toLocaleDateString("en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric", timeZone: "UTC" });
+}
+
+const ROLE_FALLBACK_TIME: Record<string, { start: string; end: string }> = {
+  co_cook: { start: "17:45", end: "20:15" },
+  kitchen_assistant: { start: "17:45", end: "20:15" },
+  cashier: { start: "18:15", end: "20:45" },
+};
+
+function icsLocalStamp(dateStr: string, hhmm: string): string {
+  const [y, m, d] = dateStr.slice(0, 10).split("-").map(Number);
+  const [h, mi] = hhmm.split(":").map(Number);
+  const p = (n: number) => String(n).padStart(2, "0");
+  return `${y}${p(m)}${p(d)}T${p(h)}${p(mi)}00`;
+}
+
+// Calendar invite (.ics) for the volunteer's shift, attached to the confirmation email.
+function buildShiftIcs(volunteer: Volunteer, event: ConcessionEvent, slot?: VolunteerSlot): string {
+  const role = slot?.role ?? "cashier";
+  const fb = ROLE_FALLBACK_TIME[role] ?? ROLE_FALLBACK_TIME.cashier;
+  const startHM = slot?.startTime || fb.start;
+  const endHM = slot?.endTime || fb.end;
+  const roleLabel = ROLE_LABELS[role] ?? role;
+  const dateStr = String(event.eventDate).slice(0, 10);
+  const esc = (v: string) => (v ?? "").replace(/([,;\\])/g, "\\$1").replace(/\n/g, "\\n");
+  const stamp = new Date().toISOString().replace(/[-:]/g, "").replace(/\.\d+Z$/, "Z");
+  return [
+    "BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//Hoyas Concession//EN", "CALSCALE:GREGORIAN", "METHOD:PUBLISH",
+    "BEGIN:VEVENT",
+    `UID:hoyas-${event.id}-${slot?.id ?? "x"}-${volunteer.id}@hoyaconcessions.com`,
+    `DTSTAMP:${stamp}`,
+    `DTSTART:${icsLocalStamp(dateStr, startHM)}`,
+    `DTEND:${icsLocalStamp(dateStr, endHM)}`,
+    `SUMMARY:${esc(`Hoyas Concession — ${roleLabel}`)}`,
+    `DESCRIPTION:${esc("Arrive 10 minutes early. Reply to your confirmation email with any questions. Go Hoyas!")}`,
+    event.location ? `LOCATION:${esc(event.location)}` : "",
+    "BEGIN:VALARM", "TRIGGER:-PT2H", "ACTION:DISPLAY", "DESCRIPTION:Hoyas Concession shift", "END:VALARM",
+    "END:VEVENT", "END:VCALENDAR",
+  ].filter(Boolean).join("\r\n");
 }
 
 export async function sendConfirmationEmail(
@@ -140,12 +178,14 @@ export async function sendConfirmationEmail(
 </body>
 </html>`;
 
+  const icsB64 = Buffer.from(buildShiftIcs(volunteer, event, slot), "utf-8").toString("base64");
   await t.transporter.sendMail({
     from: t.from,
     to: volunteer.email,
     subject: `✅ Confirmed: Hoyas Concession Volunteer – ${dateStr}`,
     replyTo: process.env.ADMIN_EMAIL || undefined,
     html,
+    attachments: [{ filename: "hoyas-concession-shift.ics", content: icsB64, encoding: "base64", contentType: "text/calendar" }],
   });
 }
 

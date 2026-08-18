@@ -56,6 +56,7 @@ export default function AdminVolunteers() {
   const [statusFilter, setStatusFilter] = useState("all");
   const [editVolunteer, setEditVolunteer] = useState<any>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<any>(null);
+  const [cancelConfirm, setCancelConfirm] = useState<any>(null);
 
   useEffect(() => {
     if (!loading && (!user || user.role !== "admin")) navigate("/admin");
@@ -266,7 +267,7 @@ export default function AdminVolunteers() {
                         )}
                         {row.volunteer.status !== "canceled" && (
                           <Button size="sm" variant="outline" className="h-7 px-2 text-xs text-gray-500"
-                            onClick={() => updateStatus.mutate({ id: row.volunteer.id, status: "canceled" })}>
+                            onClick={() => setCancelConfirm(row)}>
                             <XCircle className="w-3 h-3 mr-1" />Cancel
                           </Button>
                         )}
@@ -386,6 +387,29 @@ export default function AdminVolunteers() {
               className="flex-1 bg-red-600 text-white hover:bg-red-700"
             >
               {deleteVolunteer.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : "Delete"}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Cancel Confirm */}
+      <Dialog open={!!cancelConfirm} onOpenChange={() => setCancelConfirm(null)}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle style={{ color: "#003087" }}>Cancel this shift?</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-gray-600">
+            Cancel <strong>{cancelConfirm?.volunteer.parentName}</strong>'s shift on {cancelConfirm ? formatDate(cancelConfirm.event.eventDate) : ""}? This reopens their spot and emails them that their shift was canceled.
+          </p>
+          <div className="flex gap-3 mt-2">
+            <Button variant="outline" onClick={() => setCancelConfirm(null)} className="flex-1">Keep shift</Button>
+            <Button
+              onClick={() => { updateStatus.mutate({ id: cancelConfirm.volunteer.id, status: "canceled" }); setCancelConfirm(null); }}
+              disabled={updateStatus.isPending}
+              className="flex-1 text-white"
+              style={{ backgroundColor: "#c05600" }}
+            >
+              {updateStatus.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : "Cancel shift"}
             </Button>
           </div>
         </DialogContent>
