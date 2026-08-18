@@ -12,8 +12,9 @@ describe("standard concession volunteer roles", () => {
     expect(STANDARD_SLOT_DEFINITIONS.reduce((total, slot) => total + slot.count, 0)).toBe(4);
   });
 
-  it("does not allow Runner as a persisted volunteer-slot role", () => {
-    expect(volunteerSlots.role.enumValues).toEqual(["co_cook", "kitchen_assistant", "cashier"]);
+  it("allows a generic Volunteer role but does not restore Runner", () => {
+    expect(volunteerSlots.role.enumValues).toEqual(["co_cook", "kitchen_assistant", "cashier", "volunteer"]);
+    expect(volunteerSlots.role.enumValues).toContain("volunteer");
     expect(volunteerSlots.role.enumValues).not.toContain("runner");
   });
 });

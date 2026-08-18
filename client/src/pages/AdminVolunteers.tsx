@@ -21,6 +21,7 @@ const ROLE_LABELS: Record<string, string> = {
   co_cook: "Co-Cook",
   kitchen_assistant: "Kitchen Assistant",
   cashier: "Cashier",
+  volunteer: "Volunteer",
 };
 
 const STATUS_CONFIG: Record<string, { label: string; color: string; bg: string }> = {

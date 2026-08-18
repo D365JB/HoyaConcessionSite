@@ -120,7 +120,7 @@ export const appRouter = router({
         location: z.string().optional(),
         eventType: z.enum(["practice", "game_day"]).optional(),
         slotConfig: z.array(z.object({
-          role: z.enum(["co_cook", "kitchen_assistant", "cashier"]),
+          role: z.enum(["co_cook", "kitchen_assistant", "cashier", "volunteer"]),
           count: z.number().int().min(0).max(20),
           startTime: z.string().optional(),
           endTime: z.string().optional(),
@@ -164,7 +164,7 @@ export const appRouter = router({
         eventType: z.enum(["practice", "game_day"]).optional(),
         isActive: z.boolean().optional(),
         openSlots: z.array(z.object({
-          role: z.enum(["co_cook", "kitchen_assistant", "cashier"]),
+          role: z.enum(["co_cook", "kitchen_assistant", "cashier", "volunteer"]),
           startTime: z.string().optional(),
           endTime: z.string().optional(),
         })).optional(),

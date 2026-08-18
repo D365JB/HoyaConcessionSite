@@ -31,9 +31,14 @@ const ROLE_META: Record<string, { label: string; time: string; description: stri
     time: "6:15 PM – 8:45 PM",
     description: "Take orders, process payments, customer service, sweep and mop before leaving.",
   },
+  volunteer: {
+    label: "Volunteer",
+    time: "",
+    description: "Help wherever needed during the game-day shift.",
+  },
 };
 
-const ROLE_ORDER = ["co_cook", "kitchen_assistant", "cashier"];
+const ROLE_ORDER = ["co_cook", "kitchen_assistant", "cashier", "volunteer"];
 
 function formatClock(hhmm?: string | null): string {
   if (!hhmm) return "";

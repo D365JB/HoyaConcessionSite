@@ -339,7 +339,7 @@ export const STANDARD_SLOT_DEFINITIONS = [
   { role: "cashier" as const, count: 2 },
 ] as const;
 
-export type SlotRole = "co_cook" | "kitchen_assistant" | "cashier";
+export type SlotRole = "co_cook" | "kitchen_assistant" | "cashier" | "volunteer";
 export type SlotConfig = { role: SlotRole; count: number; startTime?: string; endTime?: string };
 
 // Practice runs the same every night: fixed roles, counts, and shift times.
@@ -396,6 +396,7 @@ export async function updateEvent(id: number, data: { eventDate?: string; label?
   if (data.eventType !== undefined) updateData.eventType = data.eventType;
   if (data.isActive !== undefined) updateData.isActive = data.isActive;
   if (data.eventDate !== undefined) updateData.eventDate = data.eventDate;
+  if (Object.keys(updateData).length === 0) return;
   await db.update(concessionEvents).set(updateData as any).where(eq(concessionEvents.id, id));
 }
 

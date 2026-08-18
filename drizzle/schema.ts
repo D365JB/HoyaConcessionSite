@@ -84,7 +84,7 @@ export type AppSetting = typeof appSettings.$inferSelect;
 export const volunteerSlots = sqliteTable("volunteer_slots", {
   id: integer("id").primaryKey({ autoIncrement: true }),
   eventId: integer("eventId").notNull().references(() => concessionEvents.id, { onDelete: "cascade" }),
-  role: text("role", { enum: ["co_cook", "kitchen_assistant", "cashier"] }).notNull(),
+  role: text("role", { enum: ["co_cook", "kitchen_assistant", "cashier", "volunteer"] }).notNull(),
   slotIndex: integer("slotIndex").notNull(),
   isOpen: integer("isOpen", { mode: "boolean" }).notNull().default(true),
   startTime: text("startTime"),

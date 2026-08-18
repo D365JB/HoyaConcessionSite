@@ -14,10 +14,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Add24Regular as Plus, Delete24Regular as Trash2, Edit24Regular as Edit2, SpinnerIos20Regular as Loader2, CalendarLtr24Regular as CalendarDays, ToggleLeft24Regular as ToggleLeft, ToggleRight24Regular as ToggleRight, ArrowUpload24Regular as Upload, ArrowDownload24Regular as Download, Mail24Regular as Mail } from "@fluentui/react-icons";
 
 const LOCATIONS = ["Lost Mountain Park", "Harrison High School"];
+type SlotRole = "co_cook" | "kitchen_assistant" | "cashier" | "volunteer";
 const ROLE_ROWS = [
   { role: "co_cook" as const, label: "Co-Cook" },
   { role: "kitchen_assistant" as const, label: "Kitchen Assistant" },
   { role: "cashier" as const, label: "Cashier" },
+  { role: "volunteer" as const, label: "Volunteer" },
 ];
 
 function formatDate(dateVal: string | Date): string {
@@ -91,13 +93,13 @@ export default function AdminSeason() {
   const [, navigate] = useLocation();
   const [addOpen, setAddOpen] = useState(false);
   const [editEvent, setEditEvent] = useState<any>(null);
-  const [editSlots, setEditSlots] = useState<{ role: "co_cook" | "kitchen_assistant" | "cashier"; startTime: string; endTime: string }[]>([]);
+  const [editSlots, setEditSlots] = useState<{ role: SlotRole; startTime: string; endTime: string }[]>([]);
   const [newDate, setNewDate] = useState("");
   const [newLabel, setNewLabel] = useState("");
   const [newLocation, setNewLocation] = useState("Lost Mountain Park");
   const [newSeason, setNewSeason] = useState("2026");
   const [newType, setNewType] = useState<"practice" | "game_day">("practice");
-  const [gameConfig, setGameConfig] = useState([
+  const [gameConfig, setGameConfig] = useState<{ role: SlotRole; count: number; startTime: string; endTime: string }[]>([
     { role: "co_cook" as const, count: 2, startTime: "16:30", endTime: "20:30" },
     { role: "kitchen_assistant" as const, count: 2, startTime: "16:30", endTime: "20:30" },
     { role: "cashier" as const, count: 3, startTime: "17:00", endTime: "21:00" },
@@ -448,7 +450,7 @@ export default function AdminSeason() {
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
                   <Label>Game Day slots</Label>
-                  <Button type="button" variant="outline" size="sm" className="h-7 text-xs" onClick={() => setGameConfig((c) => [...c, { role: "cashier" as const, count: 1, startTime: "17:00", endTime: "21:00" }])}>
+                  <Button type="button" variant="outline" size="sm" className="h-7 text-xs" onClick={() => setGameConfig((c) => [...c, { role: "volunteer", count: 1, startTime: "17:00", endTime: "21:00" }])}>
                     <Plus className="w-3 h-3 mr-1" /> Add slot
                   </Button>
                 </div>
@@ -533,7 +535,7 @@ export default function AdminSeason() {
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
                     <Label>Volunteer slots</Label>
-                    <Button type="button" variant="outline" size="sm" className="h-7 text-xs" onClick={() => setEditSlots((c) => [...c, { role: "cashier" as const, startTime: "17:00", endTime: "21:00" }])}>
+                    <Button type="button" variant="outline" size="sm" className="h-7 text-xs" onClick={() => setEditSlots((c) => [...c, { role: "volunteer", startTime: "17:00", endTime: "21:00" }])}>
                       <Plus className="w-3 h-3 mr-1" /> Add slot
                     </Button>
                   </div>

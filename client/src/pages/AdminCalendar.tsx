@@ -9,8 +9,8 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { ChevronLeft24Regular as ChevronLeft, ChevronRight24Regular as ChevronRight, SpinnerIos20Regular as Loader2, CheckmarkCircle24Regular as CheckCircle2, Warning24Regular as Warning, Mail24Regular as Mail } from "@fluentui/react-icons";
 
-const ROLE_LABELS: Record<string, string> = { co_cook: "Co-Cook", kitchen_assistant: "Kitchen Assistant", cashier: "Cashier" };
-const ROLE_ORDER = ["co_cook", "kitchen_assistant", "cashier"];
+const ROLE_LABELS: Record<string, string> = { co_cook: "Co-Cook", kitchen_assistant: "Kitchen Assistant", cashier: "Cashier", volunteer: "Volunteer" };
+const ROLE_ORDER = ["co_cook", "kitchen_assistant", "cashier", "volunteer"];
 const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
 function ymd(d: Date): string {
