@@ -161,7 +161,7 @@ export const appRouter = router({
           grade: z.enum(["K-1", "2nd", "3rd", "4th", "5th"]),
         })
       )
-      .mutation(async ({ input }) => {
+      .mutation(async ({ input, ctx }) => {
         // Check double booking
         const alreadyBooked = await checkDoubleBooking(input.email, input.eventId);
         if (alreadyBooked) {
@@ -177,14 +177,22 @@ export const appRouter = router({
         const event = volunteer ? await getEventById(input.eventId) : null;
         if (volunteer && event) {
           const slot = await getSlotById(input.slotId).catch(() => undefined);
-          // Email volunteer — with role/time from slot
-          sendConfirmationEmail(volunteer, event, slot ?? undefined)
-            .then(() => markConfirmationSent(id))
-            .catch(console.error);
-          // Notify every active admin of the new signup
-          getActiveAdminEmails()
-            .then((adminEmails) => sendAdminNewSignupEmail(volunteer, event, slot ?? undefined, adminEmails))
-            .catch(console.error);
+          const deliverEmails = (async () => {
+            try {
+              await sendConfirmationEmail(volunteer, event, slot ?? undefined);
+              await markConfirmationSent(id);
+            } catch (error) {
+              console.error("[signup] confirmation email failed", error);
+            }
+            try {
+              const adminEmails = await getActiveAdminEmails();
+              await sendAdminNewSignupEmail(volunteer, event, slot ?? undefined, adminEmails);
+            } catch (error) {
+              console.error("[signup] admin notification failed", error);
+            }
+          })();
+          // On Workers, keep async email work alive past the response; in Node it just runs.
+          if (ctx.waitUntil) ctx.waitUntil(deliverEmails);
         }
         return { id, success: true };
       }),

@@ -47,7 +47,7 @@ function serializeCookie(name: string, value: string, options: Record<string, un
 // Reuse the existing tRPC context by shimming the Express req/res it expects.
 // login/logout write the session cookie via res.cookie/clearCookie; collect
 // those writes here so they can be emitted as Set-Cookie on the fetch Response.
-function buildContext(request: Request, setCookies: string[]) {
+async function buildContext(request: Request, setCookies: string[], execCtx: WorkerExecutionContext) {
   const cookieHeader = request.headers.get("cookie") ?? "";
   const pushCookie = (name: string, value: string, options: Record<string, unknown> = {}) => {
     const opts: Record<string, unknown> = { ...options };
@@ -60,10 +60,12 @@ function buildContext(request: Request, setCookies: string[]) {
     cookie: (name: string, value: string, options: Record<string, unknown> = {}) => pushCookie(name, value, options),
     clearCookie: (name: string, options: Record<string, unknown> = {}) => pushCookie(name, "", { ...options, maxAge: undefined, expires: new Date(0) }),
   };
-  return createContext({ req, res } as unknown as Parameters<typeof createContext>[0]);
+  const base = await createContext({ req, res } as unknown as Parameters<typeof createContext>[0]);
+  // waitUntil keeps fire-and-forget email sends alive past the response.
+  return { ...base, waitUntil: (promise: Promise<unknown>) => execCtx.waitUntil(promise) };
 }
 
-async function handleApiRequest(request: Request): Promise<Response> {
+async function handleApiRequest(request: Request, execCtx: WorkerExecutionContext): Promise<Response> {
   const url = new URL(request.url);
   if (url.pathname === "/api/health") {
     return Response.json({ ok: true, runtime: "cloudflare-workers" });
@@ -74,7 +76,7 @@ async function handleApiRequest(request: Request): Promise<Response> {
       endpoint: "/api/trpc",
       req: request,
       router: appRouter,
-      createContext: () => buildContext(request, setCookies),
+      createContext: () => buildContext(request, setCookies, execCtx),
     });
     if (setCookies.length === 0) return response;
     const headers = new Headers(response.headers);
@@ -101,9 +103,9 @@ async function sendMorningReminders() {
 }
 
 export default {
-  async fetch(request: Request, env: CloudflareEnv, _ctx: WorkerExecutionContext): Promise<Response> {
+  async fetch(request: Request, env: CloudflareEnv, ctx: WorkerExecutionContext): Promise<Response> {
     configureRuntime(env);
-    return handleApiRequest(request);
+    return handleApiRequest(request, ctx);
   },
 
   async scheduled(controller: WorkerScheduledController, env: CloudflareEnv, ctx: WorkerExecutionContext) {

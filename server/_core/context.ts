@@ -7,6 +7,7 @@ export type TrpcContext = {
   req: CreateExpressContextOptions["req"];
   res: CreateExpressContextOptions["res"];
   user: User | null;
+  waitUntil?: (promise: Promise<unknown>) => void;
 };
 
 export async function createContext(
