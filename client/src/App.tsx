@@ -9,6 +9,7 @@ import AdminDashboard from "./pages/AdminDashboard";
 import AdminLogin from "./pages/AdminLogin";
 import AdminVolunteers from "./pages/AdminVolunteers";
 import AdminSeason from "./pages/AdminSeason";
+import AdminCalendar from "./pages/AdminCalendar";
 import AdminAccess from "./pages/AdminAccess";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { useEffect } from "react";
@@ -51,6 +52,9 @@ function Router() {
       </Route>
       <Route path="/admin/season">
         <ProtectedAdminRoute component={AdminSeason} />
+      </Route>
+      <Route path="/admin/calendar">
+        <ProtectedAdminRoute component={AdminCalendar} />
       </Route>
       <Route path="/admin/access">
         <ProtectedAdminRoute component={AdminAccess} />

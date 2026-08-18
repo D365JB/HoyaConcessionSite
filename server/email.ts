@@ -289,7 +289,7 @@ export async function sendStatusEmail(
   volunteer: Volunteer,
   event: ConcessionEvent,
   slot: VolunteerSlot | undefined,
-  status: "checked_in" | "no_show"
+  status: "checked_in" | "no_show" | "canceled"
 ) {
   const t = getTransporter();
   if (!t) return;
@@ -299,16 +299,23 @@ export async function sendStatusEmail(
   const dateStr = formatDate(event.eventDate);
 
   const isCheckIn = status === "checked_in";
-  const accent = isCheckIn ? "#009A44" : "#c62828";
-  const banner = isCheckIn ? "CHECKED IN — THANK YOU!" : "WE MISSED YOU";
+  const isCanceled = status === "canceled";
+  const accent = isCheckIn ? "#009A44" : isCanceled ? "#003087" : "#c62828";
+  const banner = isCheckIn ? "CHECKED IN — THANK YOU!" : isCanceled ? "SHIFT CANCELED" : "WE MISSED YOU";
   const subject = isCheckIn
     ? `✅ Checked in — thanks for volunteering, ${volunteer.parentName}!`
+    : isCanceled
+    ? `Your Hoyas concession shift has been canceled`
     : `We missed you at the Hoyas concession stand`;
   const heading = isCheckIn
     ? `Thanks for being here, ${volunteer.parentName}!`
+    : isCanceled
+    ? `Your shift has been canceled, ${volunteer.parentName}`
     : `Hi ${volunteer.parentName}, we missed you`;
   const body = isCheckIn
     ? `You're all checked in for your shift today. Thank you for giving your time to support our Hoyas athletes — we truly appreciate you!`
+    : isCanceled
+    ? `Your volunteer shift below has been canceled and the spot has been reopened for another family. If this was a mistake or you'd like to sign up for a different date, just reply to this email and we'll help.`
     : `Our records show you were signed up to volunteer today but weren't able to check in. We hope everything is okay! If this was a mistake or something came up, just reply to this email and let us know.`;
 
   const html = `

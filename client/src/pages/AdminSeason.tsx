@@ -276,8 +276,8 @@ export default function AdminSeason() {
             </div>
             <div className="flex items-center justify-between py-3 gap-4">
               <div>
-                <p className="text-sm font-medium text-gray-900">Volunteer check-in / no-show emails</p>
-                <p className="text-xs text-gray-500">Email the volunteer when you tap Check In or No Show.</p>
+                <p className="text-sm font-medium text-gray-900">Volunteer status emails</p>
+                <p className="text-xs text-gray-500">Email the volunteer when you check them in, mark no-show, or cancel their shift.</p>
               </div>
               <Button size="sm" variant="outline"
                 className={`text-xs h-8 flex-shrink-0 ${notifSettings?.volunteerStatusEmails ? "border-green-200 text-green-600 hover:bg-green-50" : "border-gray-200 text-gray-400 hover:bg-gray-50"}`}

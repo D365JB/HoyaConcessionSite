@@ -20,7 +20,7 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 import { useIsMobile } from "@/hooks/useMobile";
-import { Grid24Regular as LayoutDashboard, SignOut24Regular as LogOut, People24Regular as Users, CalendarLtr24Regular as Calendar, Open24Regular as ExternalLink, PanelLeft24Regular as PanelLeft, ShieldCheckmark24Regular as ShieldCheck } from "@fluentui/react-icons";
+import { Grid24Regular as LayoutDashboard, SignOut24Regular as LogOut, People24Regular as Users, CalendarLtr24Regular as Calendar, CalendarMonth24Regular as CalendarMonth, Open24Regular as ExternalLink, PanelLeft24Regular as PanelLeft, ShieldCheckmark24Regular as ShieldCheck } from "@fluentui/react-icons";
 import { CSSProperties, useEffect, useRef, useState } from "react";
 import { useLocation } from "wouter";
 import { DashboardLayoutSkeleton } from "./DashboardLayoutSkeleton";
@@ -29,6 +29,7 @@ import { Button } from "./ui/button";
 const menuItems = [
   { icon: LayoutDashboard, label: "Dashboard", path: "/admin/dashboard" },
   { icon: Users, label: "Volunteers", path: "/admin/volunteers" },
+  { icon: CalendarMonth, label: "Calendar", path: "/admin/calendar" },
   { icon: Calendar, label: "Season", path: "/admin/season" },
   { icon: ShieldCheck, label: "Admin Access", path: "/admin/access" },
   { icon: ExternalLink, label: "Public Page", path: "/" },

@@ -13,6 +13,7 @@ import {
   getAllVolunteers,
   getDashboardStats,
   getEventById,
+  getEventsWithFill,
   getSlotsForEvent,
   getTodayVolunteers,
   getUpcomingEvents,
@@ -180,6 +181,9 @@ export const appRouter = router({
         await deleteEvent(input.id);
         return { success: true };
       }),
+    calendar: adminProcedure
+      .input(z.object({ start: z.string(), end: z.string() }))
+      .query(async ({ input }) => getEventsWithFill(input.start, input.end)),
   }),
   // ─── Seasons ──────────────────────────────────────────────
   seasons: router({
@@ -304,8 +308,8 @@ export const appRouter = router({
       )
       .mutation(async ({ input, ctx }) => {
         await updateVolunteerStatus(input.id, input.status);
-        // Email the volunteer when checked in or marked no-show.
-        if (input.status === "checked_in" || input.status === "no_show") {
+        // Email the volunteer when checked in, marked no-show, or canceled.
+        if (input.status === "checked_in" || input.status === "no_show" || input.status === "canceled") {
           const statusForEmail = input.status;
           const notify = (async () => {
             try {
