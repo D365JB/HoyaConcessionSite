@@ -18,6 +18,13 @@ export async function getDb() {
   return _db;
 }
 
+// Current calendar date in Eastern time (YYYY-MM-DD); the Worker runtime is UTC.
+function easternToday(): string {
+  const parts = new Intl.DateTimeFormat("en-US", { timeZone: "America/New_York", year: "numeric", month: "2-digit", day: "2-digit" }).formatToParts(new Date());
+  const get = (t: string) => parts.find((p) => p.type === t)?.value ?? "";
+  return `${get("year")}-${get("month")}-${get("day")}`;
+}
+
 // ─── Users ───────────────────────────────────────────────────────────────────
 
 export async function upsertUser(user: InsertUser): Promise<void> {
@@ -220,12 +227,10 @@ export async function deactivateLocalAdminAccount(accountId: number) {
 export async function getUpcomingEvents(season?: string) {
   const db = await getDb();
   if (!db) return [];
-  // Show all active events - the season dates are fixed (2026 season)
-  // and we want volunteers to see the full schedule regardless of current date
-  if (season) {
-    return db.select().from(concessionEvents).where(and(eq(concessionEvents.isActive, true), eq(concessionEvents.season, season))).orderBy(asc(concessionEvents.eventDate));
-  }
-  return db.select().from(concessionEvents).where(eq(concessionEvents.isActive, true)).orderBy(asc(concessionEvents.eventDate));
+  // Only today and future (Eastern) so past events drop off as the season progresses.
+  const conditions = [eq(concessionEvents.isActive, true), gte(concessionEvents.eventDate, easternToday())];
+  if (season) conditions.push(eq(concessionEvents.season, season));
+  return db.select().from(concessionEvents).where(and(...conditions)).orderBy(asc(concessionEvents.eventDate));
 }
 
 export async function getAllEvents(season?: string) {
@@ -585,7 +590,7 @@ export async function getAllVolunteers(filters?: {
 export async function getTodayVolunteers() {
   const db = await getDb();
   if (!db) return [];
-  const today = new Date().toISOString().split("T")[0];
+  const today = easternToday();
   return db
     .select({
       volunteer: volunteers,
@@ -602,7 +607,7 @@ export async function getTodayVolunteers() {
 export async function getVolunteersForReminder() {
   const db = await getDb();
   if (!db) return [];
-  const today = new Date().toISOString().split("T")[0];
+  const today = easternToday();
   return db
     .select({
       volunteer: volunteers,
@@ -636,13 +641,13 @@ export async function markConfirmationSent(volunteerId: number) {
 export async function getDashboardStats() {
   const db = await getDb();
   if (!db) return { totalVolunteers: 0, todayCount: 0, openSlots: 0, upcomingEvents: 0 };
-  const today = new Date().toISOString().split("T")[0];
+  const today = easternToday();
 
   const [totalResult] = await db.select({ count: sql<number>`COUNT(*)` }).from(volunteers).where(ne(volunteers.status, "canceled"));
   const [todayResult] = await db.select({ count: sql<number>`COUNT(*)` }).from(volunteers).innerJoin(concessionEvents, eq(volunteers.eventId, concessionEvents.id)).where(and(sql`${concessionEvents.eventDate} = ${today}`, ne(volunteers.status, "canceled")));
-  // Count open slots and events across the full active season (not just future dates)
+  // Open slots across the full active season; upcoming events are today-and-future only.
   const [openResult] = await db.select({ count: sql<number>`COUNT(*)` }).from(volunteerSlots).innerJoin(concessionEvents, eq(volunteerSlots.eventId, concessionEvents.id)).where(and(eq(volunteerSlots.isOpen, true), eq(concessionEvents.isActive, true)));
-  const [upcomingResult] = await db.select({ count: sql<number>`COUNT(*)` }).from(concessionEvents).where(eq(concessionEvents.isActive, true));
+  const [upcomingResult] = await db.select({ count: sql<number>`COUNT(*)` }).from(concessionEvents).where(and(eq(concessionEvents.isActive, true), gte(concessionEvents.eventDate, today)));
 
   return {
     totalVolunteers: Number(totalResult?.count ?? 0),

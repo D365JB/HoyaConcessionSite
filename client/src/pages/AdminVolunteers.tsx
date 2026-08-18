@@ -52,6 +52,7 @@ export default function AdminVolunteers() {
   const { user, loading } = useAuth();
   const [, navigate] = useLocation();
   const [search, setSearch] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [editVolunteer, setEditVolunteer] = useState<any>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<any>(null);
@@ -60,10 +61,16 @@ export default function AdminVolunteers() {
     if (!loading && (!user || user.role !== "admin")) navigate("/admin");
   }, [user, loading, navigate]);
 
+  // Debounce the search box so we don't refetch on every keystroke.
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedSearch(search), 300);
+    return () => clearTimeout(t);
+  }, [search]);
+
   const utils = trpc.useUtils();
 
   const { data: volunteers, isLoading } = trpc.volunteers.list.useQuery(
-    { search: search || undefined, status: statusFilter !== "all" ? statusFilter : undefined },
+    { search: debouncedSearch || undefined, status: statusFilter !== "all" ? statusFilter : undefined },
     { enabled: !!user && user.role === "admin" }
   );
 

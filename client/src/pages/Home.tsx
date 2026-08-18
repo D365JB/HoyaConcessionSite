@@ -14,24 +14,21 @@ import { z } from "zod";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
-const ROLE_META: Record<string, { label: string; time: string; description: string; requirements: string[] }> = {
+const ROLE_META: Record<string, { label: string; time: string; description: string }> = {
   co_cook: {
     label: "Co-Cook",
     time: "5:45 PM – 8:15 PM",
     description: "Prepare food, follow food safety procedures, stock food, assist with kitchen cleanup.",
-    requirements: ["Closed-toe shoes required", "Arrive by 5:35 PM", "Training provided"],
   },
   kitchen_assistant: {
     label: "Kitchen Assistant",
     time: "5:45 PM – 8:15 PM",
     description: "Prepare baskets, restock supplies, assist the cook, kitchen cleanup.",
-    requirements: ["Closed-toe shoes required", "Arrive by 5:35 PM", "Training provided"],
   },
   cashier: {
     label: "Cashier",
     time: "6:15 PM – 8:45 PM",
     description: "Take orders, process payments, customer service, sweep and mop before leaving.",
-    requirements: ["Closed-toe shoes required", "Arrive by 6:05 PM", "Training provided"],
   },
 };
 
@@ -49,6 +46,18 @@ function formatClock(hhmm?: string | null): string {
 function slotRange(slot: { startTime?: string | null; endTime?: string | null } | undefined, fallback: string): string {
   if (slot?.startTime && slot?.endTime) return `${formatClock(slot.startTime)} – ${formatClock(slot.endTime)}`;
   return fallback;
+}
+
+// "Arrive by" = 10 minutes before the slot's start (falls back to role defaults).
+function slotArriveBy(slot?: { startTime?: string | null; role?: string } | null): string {
+  if (slot?.startTime) {
+    const [h, m] = slot.startTime.split(":").map(Number);
+    if (!Number.isNaN(h)) {
+      const d = new Date(2000, 0, 1, h, (m || 0) - 10);
+      return `Arrive by ${formatClock(`${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`)}`;
+    }
+  }
+  return slot?.role === "cashier" ? "Arrive by 6:05 PM" : "Arrive by 5:35 PM";
 }
 
 const signupSchema = z.object({
@@ -143,7 +152,7 @@ function SignupDialog({
               </p>
               <p className="text-gray-700 mb-2">{roleMeta.description}</p>
               <ul className="space-y-0.5">
-                {roleMeta.requirements.map((r) => (
+                {["Closed-toe shoes required", slotArriveBy(slot ?? undefined), "Training provided"].map((r) => (
                   <li key={r} className="flex items-center gap-1.5 text-xs text-gray-600">
                     <CheckCircle2 className="w-3 h-3 flex-shrink-0" style={{ color: "#009A44" }} />
                     {r}
@@ -177,13 +186,13 @@ function SignupDialog({
               {errors.childName && <p className="text-xs text-destructive">{errors.childName.message}</p>}
             </div>
             <div className="space-y-1.5">
-              <Label>Sport *</Label>
+              <Label htmlFor="sport">Sport *</Label>
               <Controller
                 name="sport"
                 control={control}
                 render={({ field }) => (
                   <Select onValueChange={field.onChange} value={field.value}>
-                    <SelectTrigger>
+                    <SelectTrigger id="sport">
                       <SelectValue placeholder="Select sport" />
                     </SelectTrigger>
                     <SelectContent>
@@ -196,13 +205,13 @@ function SignupDialog({
               {errors.sport && <p className="text-xs text-destructive">{errors.sport.message}</p>}
             </div>
             <div className="space-y-1.5">
-              <Label>Grade *</Label>
+              <Label htmlFor="grade">Grade *</Label>
               <Controller
                 name="grade"
                 control={control}
                 render={({ field }) => (
                   <Select onValueChange={field.onChange} value={field.value}>
-                    <SelectTrigger>
+                    <SelectTrigger id="grade">
                       <SelectValue placeholder="Select grade" />
                     </SelectTrigger>
                     <SelectContent>
@@ -381,7 +390,7 @@ function EventCard({
                     </div>
                     <p className="text-sm text-gray-600 mt-1">{meta.description}</p>
                     <ul className="mt-2 space-y-0.5">
-                      {meta.requirements.map((r) => (
+                      {["Closed-toe shoes required", slotArriveBy(slots[0]), "Training provided"].map((r) => (
                         <li key={r} className="text-xs text-gray-500 flex items-center gap-1.5">
                           <CheckCircle2 className="w-3 h-3 flex-shrink-0" style={{ color: "#009A44" }} />
                           {r}
@@ -549,6 +558,7 @@ export default function Home() {
             <button
               key={val}
               onClick={() => setTypeFilter(val)}
+              aria-pressed={typeFilter === val}
               className="text-sm font-semibold px-5 py-2.5 rounded-full border transition-colors"
               style={typeFilter === val ? { backgroundColor: "#003087", color: "#fff", borderColor: "#003087" } : { backgroundColor: "#fff", color: "#003087", borderColor: "#d1d5db" }}
             >
@@ -557,6 +567,7 @@ export default function Home() {
           ))}
           <button
             onClick={() => setOpenOnly((v) => !v)}
+            aria-pressed={openOnly}
             className="text-sm font-semibold px-5 py-2.5 rounded-full border transition-colors ml-auto"
             style={openOnly ? { backgroundColor: "#007a35", color: "#fff", borderColor: "#007a35" } : { backgroundColor: "#fff", color: "#007a35", borderColor: "#d1d5db" }}
           >
@@ -603,7 +614,7 @@ export default function Home() {
         <div className="container text-center">
           <p className="text-white font-bold text-lg mb-1" style={{ fontFamily: "Montserrat, sans-serif" }}>HOYAS YOUTH SPORTS</p>
           <p className="text-white/60 text-sm">Concession Volunteer Program · {currentSeason?.name ?? "2026"} Season</p>
-          <p className="text-white/40 text-xs mt-3">Questions? Contact your team coordinator.</p>
+          <p className="text-white/40 text-xs mt-3">Questions? Email <a href="mailto:Concessions.hyfca@gmail.com" className="underline hover:text-white/70">Concessions.hyfca@gmail.com</a></p>
         </div>
       </footer>
 

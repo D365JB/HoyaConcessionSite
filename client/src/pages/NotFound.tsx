@@ -1,52 +1,31 @@
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
-import { ErrorCircle24Regular as AlertCircle, Home24Regular as Home } from "@fluentui/react-icons";
+import { Home24Regular as Home } from "@fluentui/react-icons";
 import { useLocation } from "wouter";
 
 export default function NotFound() {
   const [, setLocation] = useLocation();
 
-  const handleGoHome = () => {
-    setLocation("/");
-  };
-
   return (
-    <div className="min-h-screen w-full flex items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100">
-      <Card className="w-full max-w-lg mx-4 shadow-lg border-0 bg-white/80 backdrop-blur-sm">
-        <CardContent className="pt-8 pb-8 text-center">
-          <div className="flex justify-center mb-6">
-            <div className="relative">
-              <div className="absolute inset-0 bg-red-100 rounded-full animate-pulse" />
-              <AlertCircle className="relative h-16 w-16 text-red-500" />
-            </div>
-          </div>
-
-          <h1 className="text-4xl font-bold text-slate-900 mb-2">404</h1>
-
-          <h2 className="text-xl font-semibold text-slate-700 mb-4">
-            Page Not Found
-          </h2>
-
-          <p className="text-slate-600 mb-8 leading-relaxed">
-            Sorry, the page you are looking for doesn't exist.
-            <br />
-            It may have been moved or deleted.
-          </p>
-
-          <div
-            id="not-found-button-group"
-            className="flex flex-col sm:flex-row gap-3 justify-center"
-          >
-            <Button
-              onClick={handleGoHome}
-              className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2.5 rounded-lg transition-all duration-200 shadow-md hover:shadow-lg"
-            >
-              <Home className="w-4 h-4 mr-2" />
-              Go Home
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
+    <div className="min-h-screen w-full flex items-center justify-center px-4" style={{ backgroundColor: "#f5f7fa" }}>
+      <div className="w-full max-w-md text-center">
+        <div className="mx-auto mb-6 w-20 h-20 rounded-2xl flex items-center justify-center shadow-md" style={{ backgroundColor: "#003087" }}>
+          <img src="/logo.png" alt="Hoyas Youth Sports" className="w-14 h-14 object-contain" />
+        </div>
+        <p className="text-sm font-bold tracking-widest mb-1" style={{ color: "#009A44", fontFamily: "Montserrat, sans-serif" }}>HOYAS CONCESSION</p>
+        <h1 className="text-6xl font-extrabold mb-2" style={{ color: "#003087", fontFamily: "Montserrat, sans-serif" }}>404</h1>
+        <h2 className="text-xl font-semibold text-gray-800 mb-3">Page not found</h2>
+        <p className="text-gray-500 mb-8 leading-relaxed">
+          Sorry, we couldn't find that page. It may have been moved, or the link may be out of date.
+        </p>
+        <Button
+          onClick={() => setLocation("/")}
+          className="text-white px-6 py-2.5 rounded-lg shadow-md hover:shadow-lg transition-all"
+          style={{ backgroundColor: "#003087" }}
+        >
+          <Home className="w-4 h-4 mr-2" />
+          Back to volunteer sign-up
+        </Button>
+      </div>
     </div>
   );
 }

@@ -39,7 +39,7 @@ export default function AdminDashboard() {
 
   const { data: stats, isLoading: statsLoading } = trpc.volunteers.stats.useQuery(undefined, { enabled: !!user && user.role === "admin" });
   const { data: todayVolunteers, isLoading: todayLoading } = trpc.volunteers.today.useQuery(undefined, { enabled: !!user && user.role === "admin" });
-  const { data: upcomingEvents, isLoading: eventsLoading } = trpc.events.listAll.useQuery(undefined, { enabled: !!user && user.role === "admin" });
+  const { data: upcomingEvents, isLoading: eventsLoading } = trpc.events.listUpcoming.useQuery(undefined, { enabled: !!user && user.role === "admin" });
 
   if (loading) {
     return <div className="min-h-screen flex items-center justify-center"><Loader2 className="w-8 h-8 animate-spin" style={{ color: "#003087" }} /></div>;
