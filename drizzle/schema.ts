@@ -43,6 +43,7 @@ export const concessionEvents = sqliteTable("concession_events", {
   id: integer("id").primaryKey({ autoIncrement: true }),
   eventDate: text("eventDate").notNull(),
   label: text("label"),
+  eventType: text("eventType", { enum: ["practice", "game_day"] }).notNull().default("practice"),
   location: text("location"),
   isActive: integer("isActive", { mode: "boolean" }).notNull().default(true),
   season: text("season").notNull().default("2025"),
@@ -62,6 +63,8 @@ export const volunteerSlots = sqliteTable("volunteer_slots", {
   role: text("role", { enum: ["co_cook", "kitchen_assistant", "cashier"] }).notNull(),
   slotIndex: integer("slotIndex").notNull(),
   isOpen: integer("isOpen", { mode: "boolean" }).notNull().default(true),
+  startTime: text("startTime"),
+  endTime: text("endTime"),
   createdAt: integer("createdAt", { mode: "timestamp" }).notNull().default(sql`(unixepoch())`),
   updatedAt: integer("updatedAt", { mode: "timestamp" }).notNull().default(sql`(unixepoch())`).$onUpdate(() => new Date()),
 });

@@ -250,26 +250,57 @@ export const STANDARD_SLOT_DEFINITIONS = [
   { role: "cashier" as const, count: 2 },
 ] as const;
 
-export async function createEvent(eventDate: string, season: string, label?: string, location?: string) {
+export type SlotRole = "co_cook" | "kitchen_assistant" | "cashier";
+export type SlotConfig = { role: SlotRole; count: number; startTime?: string; endTime?: string };
+
+// Practice runs the same every night: fixed roles, counts, and shift times.
+export const PRACTICE_SLOT_CONFIG: SlotConfig[] = [
+  { role: "co_cook", count: 1, startTime: "17:45", endTime: "20:15" },
+  { role: "kitchen_assistant", count: 1, startTime: "17:45", endTime: "20:15" },
+  { role: "cashier", count: 2, startTime: "18:15", endTime: "20:45" },
+];
+
+// Game days vary by number of games; this is only a starting default to edit.
+export const GAME_DAY_SLOT_CONFIG: SlotConfig[] = [
+  { role: "co_cook", count: 2, startTime: "16:30", endTime: "20:30" },
+  { role: "kitchen_assistant", count: 2, startTime: "16:30", endTime: "20:30" },
+  { role: "cashier", count: 3, startTime: "17:00", endTime: "21:00" },
+];
+
+export async function createEvent(params: {
+  eventDate: string;
+  season: string;
+  label?: string;
+  location?: string;
+  eventType?: "practice" | "game_day";
+  slotConfig?: SlotConfig[];
+}) {
   const db = await getDb();
   if (!db) throw new Error("DB unavailable");
-  const [result] = await db.insert(concessionEvents).values({ eventDate, season, label, location, isActive: true }).returning({ id: concessionEvents.id });
+  const eventType = params.eventType ?? "practice";
+  const config = params.slotConfig && params.slotConfig.length
+    ? params.slotConfig
+    : eventType === "game_day" ? GAME_DAY_SLOT_CONFIG : PRACTICE_SLOT_CONFIG;
+  const [result] = await db
+    .insert(concessionEvents)
+    .values({ eventDate: params.eventDate, season: params.season, label: params.label, location: params.location, eventType, isActive: true })
+    .returning({ id: concessionEvents.id });
   const eventId = result.id;
-  // Create the 4 standard slots: Co-Cook, Kitchen Assistant, and two Cashiers.
-  for (const { role, count } of STANDARD_SLOT_DEFINITIONS) {
-    for (let i = 0; i < count; i++) {
-      await db.insert(volunteerSlots).values({ eventId, role, slotIndex: i, isOpen: true });
+  for (const rc of config) {
+    for (let i = 0; i < rc.count; i++) {
+      await db.insert(volunteerSlots).values({ eventId, role: rc.role, slotIndex: i, isOpen: true, startTime: rc.startTime ?? null, endTime: rc.endTime ?? null });
     }
   }
   return eventId;
 }
 
-export async function updateEvent(id: number, data: { eventDate?: string; label?: string; location?: string; isActive?: boolean }) {
+export async function updateEvent(id: number, data: { eventDate?: string; label?: string; location?: string; eventType?: "practice" | "game_day"; isActive?: boolean }) {
   const db = await getDb();
   if (!db) throw new Error("DB unavailable");
   const updateData: Record<string, unknown> = {};
   if (data.label !== undefined) updateData.label = data.label;
   if (data.location !== undefined) updateData.location = data.location;
+  if (data.eventType !== undefined) updateData.eventType = data.eventType;
   if (data.isActive !== undefined) updateData.isActive = data.isActive;
   if (data.eventDate !== undefined) updateData.eventDate = data.eventDate;
   await db.update(concessionEvents).set(updateData as any).where(eq(concessionEvents.id, id));

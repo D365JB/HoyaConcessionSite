@@ -9,7 +9,15 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "sonner";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Add24Regular as Plus, Delete24Regular as Trash2, Edit24Regular as Edit2, SpinnerIos20Regular as Loader2, CalendarLtr24Regular as CalendarDays, ToggleLeft24Regular as ToggleLeft, ToggleRight24Regular as ToggleRight, Alert24Regular as Bell, AlertOff24Regular as BellOff, CheckmarkCircle24Regular as CheckCircle2, ArrowUpload24Regular as Upload, ArrowDownload24Regular as Download } from "@fluentui/react-icons";
+
+const LOCATIONS = ["Lost Mountain Park", "Harrison High School"];
+const ROLE_ROWS = [
+  { role: "co_cook" as const, label: "Co-Cook" },
+  { role: "kitchen_assistant" as const, label: "Kitchen Assistant" },
+  { role: "cashier" as const, label: "Cashier" },
+];
 
 function formatDate(dateVal: string | Date): string {
   const s = typeof dateVal === "string" ? dateVal : dateVal.toISOString();
@@ -83,8 +91,14 @@ export default function AdminSeason() {
   const [editEvent, setEditEvent] = useState<any>(null);
   const [newDate, setNewDate] = useState("");
   const [newLabel, setNewLabel] = useState("");
-  const [newLocation, setNewLocation] = useState("");
+  const [newLocation, setNewLocation] = useState("Lost Mountain Park");
   const [newSeason, setNewSeason] = useState("2026");
+  const [newType, setNewType] = useState<"practice" | "game_day">("practice");
+  const [gameConfig, setGameConfig] = useState([
+    { role: "co_cook" as const, count: 2, startTime: "16:30", endTime: "20:30" },
+    { role: "kitchen_assistant" as const, count: 2, startTime: "16:30", endTime: "20:30" },
+    { role: "cashier" as const, count: 3, startTime: "17:00", endTime: "21:00" },
+  ]);
   const [bulkOpen, setBulkOpen] = useState(false);
   const [bulkText, setBulkText] = useState("");
   const [bulkSeason, setBulkSeason] = useState("2026");
@@ -110,7 +124,7 @@ export default function AdminSeason() {
   });
 
   const createEvent = trpc.events.create.useMutation({
-    onSuccess: () => { utils.events.listAll.invalidate(); utils.events.listUpcoming.invalidate(); setAddOpen(false); setNewDate(""); setNewLabel(""); setNewLocation(""); toast.success("Event added!"); },
+    onSuccess: () => { utils.events.listAll.invalidate(); utils.events.listUpcoming.invalidate(); setAddOpen(false); setNewDate(""); setNewLabel(""); setNewType("practice"); toast.success("Event added!"); },
     onError: (e) => toast.error(e.message),
   });
 
@@ -226,6 +240,7 @@ export default function AdminSeason() {
                     <div className="min-w-0">
                       <p className="font-semibold text-gray-900 text-sm">{formatDate(event.eventDate)}</p>
                       <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+                        <span className="text-xs px-1.5 py-0.5 rounded-full font-medium" style={{ backgroundColor: event.eventType === "game_day" ? "#e6f5ec" : "#e8eef7", color: event.eventType === "game_day" ? "#007a35" : "#003087" }}>{event.eventType === "game_day" ? "Game Day" : "Practice"}</span>
                         <span className="text-xs text-gray-500">Season {event.season}</span>
                         {event.label && <span className="text-xs text-gray-400">· {event.label}</span>}
                         {event.location && <span className="text-xs text-gray-400">· {event.location}</span>}
@@ -278,6 +293,31 @@ export default function AdminSeason() {
               <Input type="date" value={newDate} onChange={(e) => setNewDate(e.target.value)} />
             </div>
             <div className="space-y-1.5">
+              <Label>Event Type</Label>
+              <div className="grid grid-cols-2 gap-2">
+                {(["practice", "game_day"] as const).map((t) => (
+                  <button
+                    key={t}
+                    type="button"
+                    onClick={() => setNewType(t)}
+                    className="rounded-lg border px-3 py-2 text-sm font-medium transition-colors"
+                    style={newType === t ? { backgroundColor: "#003087", color: "#fff", borderColor: "#003087" } : { backgroundColor: "#fff", color: "#003087", borderColor: "#d1d5db" }}
+                  >
+                    {t === "practice" ? "Practice" : "Game Day"}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div className="space-y-1.5">
+              <Label>Location</Label>
+              <Select value={newLocation} onValueChange={setNewLocation}>
+                <SelectTrigger><SelectValue placeholder="Select a location" /></SelectTrigger>
+                <SelectContent>
+                  {LOCATIONS.map((loc) => <SelectItem key={loc} value={loc}>{loc}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5">
               <Label>Season</Label>
               <Input value={newSeason} onChange={(e) => setNewSeason(e.target.value)} placeholder="2026" />
             </div>
@@ -285,15 +325,36 @@ export default function AdminSeason() {
               <Label>Label (optional)</Label>
               <Input value={newLabel} onChange={(e) => setNewLabel(e.target.value)} placeholder="e.g. Homecoming Game" />
             </div>
-            <div className="space-y-1.5">
-              <Label>Location (optional)</Label>
-              <Input value={newLocation} onChange={(e) => setNewLocation(e.target.value)} placeholder="e.g. Memorial Field concession stand" />
-            </div>
-            <p className="text-xs text-gray-500">Adding an event will automatically create 4 volunteer slots (Co-Cook, Kitchen Assistant, 2× Cashier).</p>
+            {newType === "practice" ? (
+              <p className="text-xs text-gray-500">Practice creates the standard slots: Co-Cook ×1 (5:45–8:15 PM), Kitchen Assistant ×1 (5:45–8:15 PM), Cashier ×2 (6:15–8:45 PM).</p>
+            ) : (
+              <div className="space-y-2">
+                <Label>Game Day slots (spots &amp; hours per role)</Label>
+                {gameConfig.map((rc, idx) => (
+                  <div key={rc.role} className="grid grid-cols-[1fr_auto_auto_auto] items-center gap-1.5 text-xs">
+                    <span className="text-gray-600">{ROLE_ROWS.find((r) => r.role === rc.role)?.label}</span>
+                    <input type="number" min={0} max={20} value={rc.count} onChange={(e) => setGameConfig((c) => c.map((x, i) => i === idx ? { ...x, count: Number(e.target.value) } : x))} className="w-14 rounded border border-gray-200 px-1.5 py-1" title="Spots" />
+                    <input type="time" value={rc.startTime} onChange={(e) => setGameConfig((c) => c.map((x, i) => i === idx ? { ...x, startTime: e.target.value } : x))} className="rounded border border-gray-200 px-1 py-1" title="Start" />
+                    <input type="time" value={rc.endTime} onChange={(e) => setGameConfig((c) => c.map((x, i) => i === idx ? { ...x, endTime: e.target.value } : x))} className="rounded border border-gray-200 px-1 py-1" title="End" />
+                  </div>
+                ))}
+                <p className="text-[11px] text-gray-400">Set the number of spots and shift hours per role for this game day.</p>
+              </div>
+            )}
             <div className="flex gap-3">
               <Button variant="outline" onClick={() => setAddOpen(false)} className="flex-1">Cancel</Button>
               <Button
-                onClick={() => { if (!newDate) { toast.error("Please select a date"); return; } createEvent.mutate({ eventDate: newDate, season: newSeason, label: newLabel || undefined, location: newLocation || undefined }); }}
+                onClick={() => {
+                  if (!newDate) { toast.error("Please select a date"); return; }
+                  createEvent.mutate({
+                    eventDate: newDate,
+                    season: newSeason,
+                    label: newLabel || undefined,
+                    location: newLocation || undefined,
+                    eventType: newType,
+                    slotConfig: newType === "game_day" ? gameConfig.map(({ role, count, startTime, endTime }) => ({ role, count, startTime, endTime })) : undefined,
+                  });
+                }}
                 disabled={createEvent.isPending}
                 className="flex-1 text-white"
                 style={{ backgroundColor: "#003087" }}
@@ -330,12 +391,13 @@ export default function AdminSeason() {
                 />
               </div>
               <div className="space-y-1.5">
-                <Label>Location (optional)</Label>
-                <Input
-                  defaultValue={editEvent.location ?? ""}
-                  onChange={(e) => setEditEvent({ ...editEvent, _newLocation: e.target.value })}
-                  placeholder="e.g. Memorial Field concession stand"
-                />
+                <Label>Location</Label>
+                <Select value={editEvent._newLocation ?? editEvent.location ?? ""} onValueChange={(v) => setEditEvent({ ...editEvent, _newLocation: v })}>
+                  <SelectTrigger><SelectValue placeholder="Select a location" /></SelectTrigger>
+                  <SelectContent>
+                    {LOCATIONS.map((loc) => <SelectItem key={loc} value={loc}>{loc}</SelectItem>)}
+                  </SelectContent>
+                </Select>
               </div>
               <div className="flex gap-3">
                 <Button variant="outline" onClick={() => setEditEvent(null)} className="flex-1">Cancel</Button>

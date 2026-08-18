@@ -37,6 +37,20 @@ const ROLE_META: Record<string, { label: string; time: string; description: stri
 
 const ROLE_ORDER = ["co_cook", "kitchen_assistant", "cashier"];
 
+function formatClock(hhmm?: string | null): string {
+  if (!hhmm) return "";
+  const [h, m] = hhmm.split(":").map(Number);
+  if (Number.isNaN(h)) return "";
+  const period = h >= 12 ? "PM" : "AM";
+  const hour12 = h % 12 || 12;
+  return `${hour12}:${String(m || 0).padStart(2, "0")} ${period}`;
+}
+
+function slotRange(slot: { startTime?: string | null; endTime?: string | null } | undefined, fallback: string): string {
+  if (slot?.startTime && slot?.endTime) return `${formatClock(slot.startTime)} – ${formatClock(slot.endTime)}`;
+  return fallback;
+}
+
 const signupSchema = z.object({
   parentName: z.string().min(2, "Parent name is required"),
   email: z.string().email("Valid email required"),
@@ -74,7 +88,7 @@ function SignupDialog({
 }: {
   open: boolean;
   onClose: () => void;
-  slot: { id: number; role: string } | null;
+  slot: { id: number; role: string; startTime?: string | null; endTime?: string | null } | null;
   event: { id: number; eventDate: string | Date } | null;
   onSuccess: () => void;
 }) {
@@ -125,7 +139,7 @@ function SignupDialog({
           {roleMeta && (
             <div className="rounded-lg p-3 text-sm mt-2" style={{ backgroundColor: "#e8eef7" }}>
               <p className="font-semibold mb-1" style={{ color: "#003087" }}>
-                <Clock className="inline w-3.5 h-3.5 mr-1" />{roleMeta.time}
+                <Clock className="inline w-3.5 h-3.5 mr-1" />{slotRange(slot ?? undefined, roleMeta.time)}
               </p>
               <p className="text-gray-700 mb-2">{roleMeta.description}</p>
               <ul className="space-y-0.5">
@@ -279,6 +293,10 @@ function EventCard({
             <div className="min-w-0">
               <h3 className="font-bold text-gray-900 text-base leading-tight">{formatEventDate(event.eventDate)}</h3>
               <div className="flex items-center gap-2 mt-1 flex-wrap">
+                <Badge className="text-xs px-2 py-0" style={{ backgroundColor: event.eventType === "game_day" ? "#e6f5ec" : "#e8eef7", color: event.eventType === "game_day" ? "#007a35" : "#003087" }}>
+                  {event.eventType === "game_day" ? "Game Day" : "Practice"}
+                </Badge>
+                {event.location && <span className="text-xs text-gray-500">📍 {event.location}</span>}
                 <span className="text-xs text-gray-500 flex items-center gap-1">
                   <Users className="w-3 h-3" />
                   {filledSlots}/{totalSlots} filled
@@ -335,7 +353,7 @@ function EventCard({
           {ROLE_ORDER.map((role) => {
             const slots = groupedSlots[role] || [];
             const meta = ROLE_META[role];
-            if (!meta) return null;
+            if (!meta || slots.length === 0) return null;
             return (
               <div key={role} className="p-4 sm:p-5">
                 <div className="flex items-start justify-between gap-3 mb-2">
@@ -343,7 +361,7 @@ function EventCard({
                     <div className="flex items-center gap-2 flex-wrap">
                       <h4 className="font-bold text-gray-900">{meta.label}</h4>
                       <span className="text-xs text-gray-500 flex items-center gap-1">
-                        <Clock className="w-3 h-3" />{meta.time}
+                        <Clock className="w-3 h-3" />{slotRange(slots[0], meta.time)}
                       </span>
                     </div>
                     <p className="text-sm text-gray-600 mt-1">{meta.description}</p>
@@ -394,10 +412,18 @@ function EventCard({
 
 export default function Home() {
   const { data: events, isLoading, error } = trpc.events.listUpcoming.useQuery();
-  const [selectedSlot, setSelectedSlot] = useState<{ id: number; role: string } | null>(null);
+  const [selectedSlot, setSelectedSlot] = useState<{ id: number; role: string; startTime?: string | null; endTime?: string | null } | null>(null);
   const [selectedEvent, setSelectedEvent] = useState<{ id: number; eventDate: string | Date } | null>(null);
   const [signupOpen, setSignupOpen] = useState(false);
   const [successEvent, setSuccessEvent] = useState<string | null>(null);
+  const [typeFilter, setTypeFilter] = useState<"all" | "practice" | "game_day">("all");
+  const [openOnly, setOpenOnly] = useState(false);
+
+  const filteredEvents = (events ?? []).filter((e: any) => {
+    if (typeFilter !== "all" && e.eventType !== typeFilter) return false;
+    if (openOnly && !(e.slots ?? []).some((s: any) => s.isOpen)) return false;
+    return true;
+  });
 
   const handleSelectSlot = (slot: any, event: any) => {
     setSelectedSlot(slot);
@@ -490,16 +516,36 @@ export default function Home() {
         <div className="flex items-center justify-between mb-6">
           <div>
             <h2 className="text-xl sm:text-2xl font-bold text-gray-900" style={{ fontFamily: "Montserrat, sans-serif" }}>
-              Upcoming Practice Nights
+              Upcoming Opportunities
             </h2>
             <p className="text-sm text-gray-500 mt-1">
-              {events ? `${events.length} events · Click an event to see open positions` : "Loading schedule..."}
+              {events ? `${filteredEvents.length} shown · Click an event to see open positions` : "Loading schedule..."}
             </p>
           </div>
           <div className="flex items-center gap-1.5 text-xs text-gray-500">
             <CalendarDays className="w-4 h-4" />
             <span>2026 Season</span>
           </div>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-2 mb-5">
+          {([["all", "All"], ["practice", "Practices"], ["game_day", "Game Days"]] as const).map(([val, lbl]) => (
+            <button
+              key={val}
+              onClick={() => setTypeFilter(val)}
+              className="text-xs font-medium px-3 py-1.5 rounded-full border transition-colors"
+              style={typeFilter === val ? { backgroundColor: "#003087", color: "#fff", borderColor: "#003087" } : { backgroundColor: "#fff", color: "#003087", borderColor: "#d1d5db" }}
+            >
+              {lbl}
+            </button>
+          ))}
+          <button
+            onClick={() => setOpenOnly((v) => !v)}
+            className="text-xs font-medium px-3 py-1.5 rounded-full border transition-colors ml-auto"
+            style={openOnly ? { backgroundColor: "#007a35", color: "#fff", borderColor: "#007a35" } : { backgroundColor: "#fff", color: "#007a35", borderColor: "#d1d5db" }}
+          >
+            {openOnly ? "✓ Open spots only" : "Open spots only"}
+          </button>
         </div>
 
         {isLoading && (
@@ -527,7 +573,9 @@ export default function Home() {
 
         {events && events.length > 0 && (
           <div className="space-y-3">
-            {events.map((event: any) => (
+            {filteredEvents.length === 0 ? (
+              <p className="text-center text-gray-400 py-10 text-sm">No opportunities match this filter.</p>
+            ) : filteredEvents.map((event: any) => (
               <EventCard key={event.id} event={event} onSelectSlot={handleSelectSlot} />
             ))}
           </div>

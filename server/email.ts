@@ -26,6 +26,29 @@ const ROLE_TIMES: Record<string, string> = {
   cashier: "6:15 PM – 8:45 PM",
 };
 
+function formatClock(hhmm?: string | null): string {
+  if (!hhmm) return "";
+  const [h, m] = hhmm.split(":").map(Number);
+  if (Number.isNaN(h)) return "";
+  const period = h >= 12 ? "PM" : "AM";
+  const hour12 = h % 12 || 12;
+  return `${hour12}:${String(m || 0).padStart(2, "0")} ${period}`;
+}
+
+function slotTimeRange(slot?: VolunteerSlot): string {
+  if (slot?.startTime && slot?.endTime) return `${formatClock(slot.startTime)} – ${formatClock(slot.endTime)}`;
+  return slot ? (ROLE_TIMES[slot.role] ?? "") : "";
+}
+
+function slotArriveBy(slot?: VolunteerSlot): string {
+  if (slot?.startTime) {
+    const [h, m] = slot.startTime.split(":").map(Number);
+    const d = new Date(2000, 0, 1, h, (m || 0) - 10);
+    return formatClock(`${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`);
+  }
+  return slot?.role === "cashier" ? "6:05 PM" : "5:35 PM";
+}
+
 function getTransporter() {
   if (workerEmail && workerEmailFrom) {
     return {
@@ -72,7 +95,7 @@ export async function sendConfirmationEmail(
   if (!t) return;
 
   const roleLabel = slot ? (ROLE_LABELS[slot.role] ?? slot.role) : "Volunteer";
-  const roleTime = slot ? (ROLE_TIMES[slot.role] ?? "") : "";
+  const roleTime = slotTimeRange(slot);
   const dateStr = formatDate(event.eventDate);
 
   const html = `
@@ -144,7 +167,7 @@ export async function sendAdminNewSignupEmail(
   }
 
   const roleLabel = slot ? (ROLE_LABELS[slot.role] ?? slot.role) : "Volunteer";
-  const roleTime = slot ? (ROLE_TIMES[slot.role] ?? "") : "";
+  const roleTime = slotTimeRange(slot);
   const dateStr = formatDate(event.eventDate);
   const sportLabel = volunteer.sport === "football" ? "Football" : "Cheer";
 
@@ -205,9 +228,9 @@ export async function sendReminderEmail(
   if (!t) return;
 
   const roleLabel = slot ? ROLE_LABELS[slot.role] ?? slot.role : "Volunteer";
-  const roleTime = slot ? ROLE_TIMES[slot.role] ?? "" : "";
+  const roleTime = slotTimeRange(slot);
   const dateStr = formatDate(event.eventDate);
-  const arriveTime = slot?.role === "co_cook" || slot?.role === "kitchen_assistant" ? "5:35 PM" : "6:05 PM";
+  const arriveTime = slotArriveBy(slot);
 
   const html = `
 <!DOCTYPE html>

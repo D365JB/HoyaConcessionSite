@@ -101,9 +101,21 @@ export const appRouter = router({
       }),
 
     create: adminProcedure
-      .input(z.object({ eventDate: z.string(), season: z.string(), label: z.string().optional(), location: z.string().optional() }))
+      .input(z.object({
+        eventDate: z.string(),
+        season: z.string(),
+        label: z.string().optional(),
+        location: z.string().optional(),
+        eventType: z.enum(["practice", "game_day"]).optional(),
+        slotConfig: z.array(z.object({
+          role: z.enum(["co_cook", "kitchen_assistant", "cashier"]),
+          count: z.number().int().min(0).max(20),
+          startTime: z.string().optional(),
+          endTime: z.string().optional(),
+        })).optional(),
+      }))
       .mutation(async ({ input }) => {
-        const id = await createEvent(input.eventDate, input.season, input.label, input.location);
+        const id = await createEvent(input);
         return { id };
       }),
 
@@ -114,6 +126,7 @@ export const appRouter = router({
           season: z.string().min(1),
           label: z.string().optional(),
           location: z.string().optional(),
+          eventType: z.enum(["practice", "game_day"]).optional(),
         })).min(1).max(200),
       }))
       .mutation(async ({ input }) => {
@@ -121,7 +134,7 @@ export const appRouter = router({
         const errors: string[] = [];
         for (const ev of input.events) {
           try {
-            await createEvent(ev.eventDate, ev.season, ev.label, ev.location);
+            await createEvent(ev);
             created++;
           } catch (e) {
             errors.push(`${ev.eventDate}: ${e instanceof Error ? e.message : "failed"}`);
@@ -131,7 +144,7 @@ export const appRouter = router({
       }),
 
     update: adminProcedure
-      .input(z.object({ id: z.number(), eventDate: z.string().optional(), label: z.string().optional(), location: z.string().optional(), isActive: z.boolean().optional() }))
+      .input(z.object({ id: z.number(), eventDate: z.string().optional(), label: z.string().optional(), location: z.string().optional(), eventType: z.enum(["practice", "game_day"]).optional(), isActive: z.boolean().optional() }))
       .mutation(async ({ input }) => {
         const { id, ...data } = input;
         await updateEvent(id, data);

@@ -8,6 +8,13 @@
       "when": 1787002922129,
       "tag": "0000_sparkling_namor",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "6",
+      "when": 1787022413488,
+      "tag": "0001_chief_the_captain",
+      "breakpoints": true
     }
   ]
 }
