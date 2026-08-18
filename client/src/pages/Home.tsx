@@ -298,8 +298,16 @@ function EventCard({
 
   return (
     <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden transition-all duration-200 hover:shadow-md">
-      {/* Header */}
-      <div className="p-4 sm:p-5" style={{ borderLeft: `4px solid ${isFull ? "#d1d5db" : "#009A44"}` }}>
+      {/* Header — clicking anywhere toggles expand */}
+      <div
+        className="p-4 sm:p-5 cursor-pointer hover:bg-gray-50/60 transition-colors"
+        style={{ borderLeft: `4px solid ${isFull ? "#d1d5db" : "#009A44"}` }}
+        role="button"
+        tabIndex={0}
+        aria-expanded={expanded}
+        onClick={() => setExpanded(!expanded)}
+        onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setExpanded(!expanded); } }}
+      >
         <div className="flex items-start justify-between gap-3">
           <div className="flex items-center gap-3 min-w-0">
             <div className="flex-shrink-0 w-12 h-12 rounded-lg flex flex-col items-center justify-center text-white text-xs font-bold" style={{ backgroundColor: "#003087" }}>
@@ -337,13 +345,9 @@ function EventCard({
               </div>
             </div>
           </div>
-          <button
-            onClick={() => setExpanded(!expanded)}
-            className="flex-shrink-0 p-1.5 rounded-lg hover:bg-gray-100 transition-colors"
-            aria-label={expanded ? "Collapse" : "Expand"}
-          >
-            {expanded ? <ChevronUp className="w-5 h-5 text-gray-500" /> : <ChevronDown className="w-5 h-5 text-gray-500" />}
-          </button>
+          <div className="flex-shrink-0 p-1.5 rounded-lg text-gray-500" aria-hidden="true">
+            {expanded ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
+          </div>
         </div>
 
         {/* Slot summary pills */}
