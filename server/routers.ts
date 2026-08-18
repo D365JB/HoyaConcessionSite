@@ -18,6 +18,7 @@ import {
   getTodayVolunteers,
   getUpcomingEvents,
   getVolunteerById,
+  getVolunteersForEvent,
   markConfirmationSent,
   updateEvent,
   setEventSlots,
@@ -38,7 +39,7 @@ import {
 } from "./db";
 import { getSlotById } from "./db";
 import { createLocalAdminAccount, deactivateLocalAdminAccount, getLocalAdminAccountByEmail, listLocalAdminAccounts } from "./db";
-import { sendConfirmationEmail, sendReminderEmail, sendAdminNewSignupEmail, sendStatusEmail } from "./email";
+import { sendConfirmationEmail, sendReminderEmail, sendAdminNewSignupEmail, sendStatusEmail, sendEventMessageEmail } from "./email";
 import { runDigest } from "./digests";
 import { createHeartbeatJob, deleteHeartbeatJob } from "./_core/heartbeat";
 import { createLocalAdminSession, ensureBootstrapLocalAdmin, getLocalSessionMaxAgeMs, hashPassword, LOCAL_ADMIN_COOKIE, verifyPassword } from "./localAuth";
@@ -184,6 +185,18 @@ export const appRouter = router({
     calendar: adminProcedure
       .input(z.object({ start: z.string(), end: z.string() }))
       .query(async ({ input }) => getEventsWithFill(input.start, input.end)),
+    emailVolunteers: adminProcedure
+      .input(z.object({ eventId: z.number(), message: z.string().trim().min(1).max(2000) }))
+      .mutation(async ({ input }) => {
+        const event = await getEventById(input.eventId);
+        if (!event) throw new TRPCError({ code: "NOT_FOUND", message: "Event not found" });
+        const vols = (await getVolunteersForEvent(input.eventId)).filter((v) => v.status !== "canceled");
+        const results = await Promise.allSettled(vols.map(async (v) => {
+          const slot = await getSlotById(v.slotId).catch(() => undefined);
+          await sendEventMessageEmail(v, event, slot ?? undefined, input.message);
+        }));
+        return { sent: results.filter((r) => r.status === "fulfilled").length, total: vols.length };
+      }),
   }),
   // ─── Seasons ──────────────────────────────────────────────
   seasons: router({

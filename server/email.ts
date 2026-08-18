@@ -399,6 +399,61 @@ export async function sendStatusEmail(
   });
 }
 
+export async function sendEventMessageEmail(
+  volunteer: Volunteer,
+  event: ConcessionEvent,
+  slot: VolunteerSlot | undefined,
+  message: string
+) {
+  const t = getTransporter();
+  if (!t) return;
+  const roleLabel = slot ? (ROLE_LABELS[slot.role] ?? slot.role) : "Volunteer";
+  const roleTime = slotTimeRange(slot);
+  const dateStr = formatDate(event.eventDate);
+  const esc = (s: string) => (s ?? "").replace(/[&<>]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c] as string));
+  const safeMsg = esc(message).replace(/\r?\n/g, "<br>");
+
+  const html = `
+<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"></head>
+<body style="margin:0;padding:0;background:#f4f4f4;font-family:Arial,sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#f4f4f4;padding:20px 0;">
+    <tr><td align="center">
+      <table width="600" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:8px;overflow:hidden;max-width:600px;width:100%;">
+        <tr><td style="background:#003087;padding:24px 32px;text-align:center;">
+          <h1 style="color:#ffffff;margin:0;font-size:24px;font-weight:bold;">HOYAS CONCESSION</h1>
+          <p style="color:#009A44;margin:4px 0 0;font-size:14px;font-weight:600;letter-spacing:1px;">A MESSAGE FROM THE TEAM</p>
+        </td></tr>
+        <tr><td style="padding:32px;">
+          <h2 style="color:#003087;margin:0 0 16px;">Hi ${esc(volunteer.parentName)},</h2>
+          <div style="color:#333;line-height:1.6;font-size:15px;border-left:4px solid #009A44;background:#f8faf8;padding:12px 16px;border-radius:4px;">${safeMsg}</div>
+          <table width="100%" cellpadding="8" cellspacing="0" style="background:#f8f9fa;border-radius:6px;margin:20px 0;">
+            <tr><td style="color:#666;font-size:13px;width:40%;">Date</td><td style="color:#003087;font-weight:bold;">${dateStr}</td></tr>
+            <tr><td style="color:#666;font-size:13px;">Role</td><td style="color:#003087;font-weight:bold;">${roleLabel}</td></tr>
+            ${roleTime ? `<tr><td style="color:#666;font-size:13px;">Shift Time</td><td style="color:#003087;font-weight:bold;">${roleTime}</td></tr>` : ""}
+            ${event.location ? `<tr><td style="color:#666;font-size:13px;">Location</td><td style="color:#003087;font-weight:bold;">${event.location}</td></tr>` : ""}
+          </table>
+          <p style="color:#666;font-size:13px;">Questions? Just reply to this email. Go Hoyas! 🏈</p>
+        </td></tr>
+        <tr><td style="background:#003087;padding:16px;text-align:center;">
+          <p style="color:#ffffff;margin:0;font-size:12px;">© 2026 Hoyas Youth Sports · Concession Volunteer Program</p>
+        </td></tr>
+      </table>
+    </td></tr>
+  </table>
+</body>
+</html>`;
+
+  await t.transporter.sendMail({
+    from: t.from,
+    to: volunteer.email,
+    subject: `📣 Update for your Hoyas Concession shift – ${dateStr}`,
+    replyTo: process.env.ADMIN_EMAIL || undefined,
+    html,
+  });
+}
+
 type DigestEventRow = {
   event: ConcessionEvent;
   slots: VolunteerSlot[];

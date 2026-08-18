@@ -97,6 +97,13 @@ function downloadShiftIcs(s: { title: string; location?: string; start: Date; en
   URL.revokeObjectURL(url);
 }
 
+function formatPhone(v: string): string {
+  const d = (v || "").replace(/\D/g, "").slice(0, 10);
+  if (d.length < 4) return d;
+  if (d.length < 7) return `(${d.slice(0, 3)}) ${d.slice(3)}`;
+  return `(${d.slice(0, 3)}) ${d.slice(3, 6)}-${d.slice(6)}`;
+}
+
 const signupSchema = z.object({
   parentName: z.string().min(2, "Parent name is required"),
   email: z.string().email("Valid email required"),
@@ -214,7 +221,9 @@ function SignupDialog({
             </div>
             <div className="space-y-1.5">
               <Label htmlFor="phone">Phone *</Label>
-              <Input id="phone" type="tel" placeholder="(555) 555-5555" {...register("phone")} />
+              <Controller name="phone" control={control} render={({ field }) => (
+                <Input id="phone" type="tel" inputMode="tel" placeholder="(555) 555-5555" value={field.value ?? ""} onChange={(e) => field.onChange(formatPhone(e.target.value))} />
+              )} />
               {errors.phone && <p className="text-xs text-destructive">{errors.phone.message}</p>}
             </div>
             <div className="space-y-1.5">
