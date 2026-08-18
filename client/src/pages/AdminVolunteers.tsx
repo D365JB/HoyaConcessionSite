@@ -226,7 +226,7 @@ export default function AdminVolunteers() {
               const sc = STATUS_CONFIG[row.volunteer.status] ?? STATUS_CONFIG.confirmed;
               return (
                 <div key={row.volunteer.id} className="bg-white rounded-xl border border-gray-100 p-4 shadow-sm">
-                  <div className="flex items-start justify-between gap-3">
+                  <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-2 flex-wrap mb-1">
                         <span className="font-bold text-gray-900">{row.volunteer.parentName}</span>
@@ -243,9 +243,9 @@ export default function AdminVolunteers() {
                         {row.volunteer.notes && <p className="text-xs italic text-gray-400">Note: {row.volunteer.notes}</p>}
                       </div>
                     </div>
-                    <div className="flex flex-col gap-1.5 flex-shrink-0">
+                    <div className="flex flex-col gap-1.5 flex-shrink-0 border-t sm:border-t-0 border-gray-100 pt-3 sm:pt-0">
                       {/* Status Actions */}
-                      <div className="flex gap-1.5 flex-wrap justify-end">
+                      <div className="flex gap-1.5 flex-wrap justify-start sm:justify-end">
                         {row.volunteer.status !== "checked_in" && row.volunteer.status !== "canceled" && (
                           <Button size="sm" variant="outline" className="h-7 px-2 text-xs" style={{ borderColor: "#009A44", color: "#009A44" }}
                             onClick={() => updateStatus.mutate({ id: row.volunteer.id, status: "checked_in" })}>
@@ -278,7 +278,7 @@ export default function AdminVolunteers() {
                         )}
                       </div>
                       {/* Edit / Delete */}
-                      <div className="flex gap-1.5 justify-end">
+                      <div className="flex gap-1.5 justify-start sm:justify-end">
                         <Button size="sm" variant="outline" className="h-7 px-2 text-xs" onClick={() => openEdit(row)}>
                           <Edit2 className="w-3 h-3 mr-1" />Edit
                         </Button>

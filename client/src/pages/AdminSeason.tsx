@@ -342,7 +342,7 @@ export default function AdminSeason() {
               const openSlots = event.slots.filter((s: any) => s.isOpen).length;
               const totalSlots = event.slots.length;
               return (
-                <div key={event.id} className="bg-white rounded-xl border border-gray-100 p-4 shadow-sm flex items-center justify-between gap-3">
+                <div key={event.id} className="bg-white rounded-xl border border-gray-100 p-4 shadow-sm flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                   <div className="flex items-center gap-3 min-w-0">
                     <div className="w-10 h-10 rounded-lg flex items-center justify-center text-white text-xs font-bold flex-shrink-0" style={{ backgroundColor: event.isActive ? "#003087" : "#ccc" }}>
                       <CalendarDays className="w-5 h-5" />
@@ -361,7 +361,7 @@ export default function AdminSeason() {
                       </div>
                     </div>
                   </div>
-                  <div className="flex items-center gap-1.5 flex-shrink-0">
+                  <div className="flex items-center gap-1.5 flex-shrink-0 justify-end border-t sm:border-t-0 border-gray-100 pt-2.5 sm:pt-0">
                     <Button
                       size="sm" variant="outline" className="h-8 px-2 text-xs"
                       onClick={() => updateEvent.mutate({ id: event.id, isActive: !event.isActive })}
