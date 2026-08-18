@@ -89,6 +89,7 @@ export default function AdminSeason() {
   const [, navigate] = useLocation();
   const [addOpen, setAddOpen] = useState(false);
   const [editEvent, setEditEvent] = useState<any>(null);
+  const [editSlots, setEditSlots] = useState<{ role: "co_cook" | "kitchen_assistant" | "cashier"; startTime: string; endTime: string }[]>([]);
   const [newDate, setNewDate] = useState("");
   const [newLabel, setNewLabel] = useState("");
   const [newLocation, setNewLocation] = useState("Lost Mountain Park");
@@ -117,6 +118,13 @@ export default function AdminSeason() {
   useEffect(() => {
     if (currentSeason?.name) { setNewSeason(currentSeason.name); setBulkSeason(currentSeason.name); }
   }, [currentSeason?.name]);
+
+  // Load an event's open slots into editable rows when the Edit dialog opens.
+  useEffect(() => {
+    if (editEvent) {
+      setEditSlots((editEvent.slots ?? []).filter((s: any) => s.isOpen).map((s: any) => ({ role: s.role, startTime: s.startTime ?? "", endTime: s.endTime ?? "" })));
+    }
+  }, [editEvent?.id]);
   const { data: cronJobs, refetch: refetchCron } = trpc.cron.list.useQuery(undefined, { enabled: !!user && user.role === "admin" });
   const morningReminderJob = cronJobs?.find((j: any) => j.name === "morning-reminders");
 
@@ -455,7 +463,7 @@ export default function AdminSeason() {
 
       {/* Edit Event Dialog */}
       <Dialog open={!!editEvent} onOpenChange={() => setEditEvent(null)}>
-        <DialogContent className="max-w-sm">
+        <DialogContent className="max-w-md max-h-[85vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle style={{ color: "#003087" }}>Edit Event</DialogTitle>
           </DialogHeader>
@@ -486,10 +494,44 @@ export default function AdminSeason() {
                   </SelectContent>
                 </Select>
               </div>
+              {editEvent.eventType === "game_day" && (
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <Label>Volunteer slots</Label>
+                    <Button type="button" variant="outline" size="sm" className="h-7 text-xs" onClick={() => setEditSlots((c) => [...c, { role: "cashier" as const, startTime: "17:00", endTime: "21:00" }])}>
+                      <Plus className="w-3 h-3 mr-1" /> Add slot
+                    </Button>
+                  </div>
+                  {(editEvent.slots ?? []).filter((s: any) => !s.isOpen).map((s: any) => (
+                    <div key={s.id} className="flex items-center justify-between rounded border border-gray-100 bg-gray-50 px-2 py-1.5 text-xs text-gray-500">
+                      <span>{ROLE_ROWS.find((r) => r.role === s.role)?.label ?? s.role}{s.startTime ? ` · ${s.startTime}–${s.endTime ?? ""}` : ""}</span>
+                      <span className="font-medium text-gray-400">● Filled</span>
+                    </div>
+                  ))}
+                  {editSlots.length > 0 && (
+                    <div className="grid grid-cols-[1fr_auto_auto_1.5rem] items-center gap-1.5 text-[10px] uppercase tracking-wide text-gray-400 px-0.5">
+                      <span>Role</span><span>Start</span><span>End</span><span></span>
+                    </div>
+                  )}
+                  {editSlots.map((rc, idx) => (
+                    <div key={idx} className="grid grid-cols-[1fr_auto_auto_1.5rem] items-center gap-1.5 text-xs">
+                      <select value={rc.role} onChange={(e) => setEditSlots((c) => c.map((x, i) => i === idx ? { ...x, role: e.target.value as typeof x.role } : x))} className="rounded border border-gray-200 px-1.5 py-1 bg-white">
+                        {ROLE_ROWS.map((r) => <option key={r.role} value={r.role}>{r.label}</option>)}
+                      </select>
+                      <input type="time" value={rc.startTime} onChange={(e) => setEditSlots((c) => c.map((x, i) => i === idx ? { ...x, startTime: e.target.value } : x))} className="rounded border border-gray-200 px-1 py-1" title="Start" />
+                      <input type="time" value={rc.endTime} onChange={(e) => setEditSlots((c) => c.map((x, i) => i === idx ? { ...x, endTime: e.target.value } : x))} className="rounded border border-gray-200 px-1 py-1" title="End" />
+                      <button type="button" onClick={() => setEditSlots((c) => c.filter((_, i) => i !== idx))} className="text-gray-400 hover:text-red-500" title="Remove slot">
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  ))}
+                  <p className="text-[11px] text-gray-400">Open spots are editable. Filled spots are locked — cancel the volunteer from the event roster to free one up.</p>
+                </div>
+              )}
               <div className="flex gap-3">
                 <Button variant="outline" onClick={() => setEditEvent(null)} className="flex-1">Cancel</Button>
                 <Button
-                  onClick={() => updateEvent.mutate({ id: editEvent.id, eventDate: editEvent._newDate, label: editEvent._newLabel, location: editEvent._newLocation })}
+                  onClick={() => updateEvent.mutate({ id: editEvent.id, eventDate: editEvent._newDate, label: editEvent._newLabel, location: editEvent._newLocation, openSlots: editEvent.eventType === "game_day" ? editSlots.map((s) => ({ role: s.role, startTime: s.startTime || undefined, endTime: s.endTime || undefined })) : undefined })}
                   disabled={updateEvent.isPending}
                   className="flex-1 text-white"
                   style={{ backgroundColor: "#003087" }}

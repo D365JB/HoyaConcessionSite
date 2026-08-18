@@ -19,6 +19,7 @@ import {
   getVolunteerById,
   markConfirmationSent,
   updateEvent,
+  setEventSlots,
   updateVolunteer,
   updateVolunteerStatus,
   getCronJob,
@@ -152,10 +153,23 @@ export const appRouter = router({
       }),
 
     update: adminProcedure
-      .input(z.object({ id: z.number(), eventDate: z.string().optional(), label: z.string().optional(), location: z.string().optional(), eventType: z.enum(["practice", "game_day"]).optional(), isActive: z.boolean().optional() }))
+      .input(z.object({
+        id: z.number(),
+        eventDate: z.string().optional(),
+        label: z.string().optional(),
+        location: z.string().optional(),
+        eventType: z.enum(["practice", "game_day"]).optional(),
+        isActive: z.boolean().optional(),
+        openSlots: z.array(z.object({
+          role: z.enum(["co_cook", "kitchen_assistant", "cashier"]),
+          startTime: z.string().optional(),
+          endTime: z.string().optional(),
+        })).optional(),
+      }))
       .mutation(async ({ input }) => {
-        const { id, ...data } = input;
+        const { id, openSlots, ...data } = input;
         await updateEvent(id, data);
+        if (openSlots) await setEventSlots(id, openSlots);
         return { success: true };
       }),
 

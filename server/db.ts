@@ -371,6 +371,25 @@ export async function updateEvent(id: number, data: { eventDate?: string; label?
   await db.update(concessionEvents).set(updateData as any).where(eq(concessionEvents.id, id));
 }
 
+// Replace an event's OPEN slots with `openSlots`, keeping any slot already taken
+// by a volunteer (isOpen=false) so existing signups are never lost.
+export async function setEventSlots(eventId: number, openSlots: { role: SlotRole; startTime?: string; endTime?: string }[]) {
+  const db = await getDb();
+  if (!db) throw new Error("DB unavailable");
+  const existing = await db.select().from(volunteerSlots).where(eq(volunteerSlots.eventId, eventId));
+  await db.delete(volunteerSlots).where(and(eq(volunteerSlots.eventId, eventId), eq(volunteerSlots.isOpen, true)));
+  // Continue slotIndex per role past any preserved (filled) slots.
+  const roleCounters: Record<string, number> = {};
+  for (const s of existing) {
+    if (!s.isOpen) roleCounters[s.role] = Math.max(roleCounters[s.role] ?? -1, s.slotIndex);
+  }
+  for (const rc of openSlots) {
+    const next = (roleCounters[rc.role] ?? -1) + 1;
+    roleCounters[rc.role] = next;
+    await db.insert(volunteerSlots).values({ eventId, role: rc.role, slotIndex: next, isOpen: true, startTime: rc.startTime ?? null, endTime: rc.endTime ?? null });
+  }
+}
+
 export async function deleteEvent(id: number) {
   const db = await getDb();
   if (!db) throw new Error("DB unavailable");
