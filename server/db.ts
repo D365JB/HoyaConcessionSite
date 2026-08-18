@@ -1,45 +1,20 @@
 import { and, asc, desc, eq, gte, lte, ne, or, sql } from "drizzle-orm";
-import { drizzle } from "drizzle-orm/mysql2";
-import { createConnection } from "mysql2/promise";
+import { drizzle } from "drizzle-orm/d1";
 import { concessionEvents, cronJobs, InsertUser, localAdminAccounts, users, volunteerSlots, volunteers } from "../drizzle/schema";
 import { ENV } from "./_core/env";
 
 let _db: ReturnType<typeof drizzle> | null = null;
-type HyperdriveBinding = { host: string; user: string; password: string; database: string; port: number };
-let hyperdriveBinding: HyperdriveBinding | null = null;
+let d1Binding: any = null;
 
-/** Configure the database adapter for the Cloudflare Worker runtime. */
-export function configureHyperdrive(binding: HyperdriveBinding) {
-  hyperdriveBinding = binding;
+/** Configure the Cloudflare D1 database binding for the Worker runtime. */
+export function configureD1(binding: unknown) {
+  d1Binding = binding;
   _db = null;
 }
 
 export async function getDb() {
-  if (hyperdriveBinding) {
-    try {
-      const connection = await createConnection({
-        host: hyperdriveBinding.host,
-        user: hyperdriveBinding.user,
-        password: hyperdriveBinding.password,
-        database: hyperdriveBinding.database,
-        port: hyperdriveBinding.port,
-        // Required by mysql2 when it is run within Cloudflare Workers.
-        disableEval: true,
-      });
-      return drizzle(connection);
-    } catch (error) {
-      console.warn("[Database] Hyperdrive connection failed:", error);
-      return null;
-    }
-  }
-  if (!_db && process.env.DATABASE_URL) {
-    try {
-      _db = drizzle(process.env.DATABASE_URL);
-    } catch (error) {
-      console.warn("[Database] Failed to connect:", error);
-      _db = null;
-    }
-  }
+  if (!d1Binding) return null;
+  if (!_db) _db = drizzle(d1Binding);
   return _db;
 }
 
@@ -75,7 +50,7 @@ export async function upsertUser(user: InsertUser): Promise<void> {
   if (!values.lastSignedIn) values.lastSignedIn = new Date();
   if (Object.keys(updateSet).length === 0) updateSet.lastSignedIn = new Date();
 
-  await db.insert(users).values(values).onDuplicateKeyUpdate({ set: updateSet });
+  await db.insert(users).values(values).onConflictDoUpdate({ target: users.openId, set: updateSet });
 }
 
 export async function getUserByOpenId(openId: string) {
@@ -215,12 +190,12 @@ export async function createLocalAdminAccount(input: { name: string; email: stri
       loginMethod: "password",
       role: "admin",
       lastSignedIn: new Date(),
-    });
-    userId = Number((insertResult as any).insertId);
+    }).returning({ id: users.id });
+    userId = insertResult.id;
   }
 
-  const [accountResult] = await db.insert(localAdminAccounts).values({ userId, email, passwordHash: input.passwordHash, isActive: true });
-  return { id: Number((accountResult as any).insertId), userId, email };
+  const [accountResult] = await db.insert(localAdminAccounts).values({ userId, email, passwordHash: input.passwordHash, isActive: true }).returning({ id: localAdminAccounts.id });
+  return { id: accountResult.id, userId, email };
 }
 
 export async function updateLocalAdminPassword(accountId: number, passwordHash: string) {
@@ -278,8 +253,8 @@ export const STANDARD_SLOT_DEFINITIONS = [
 export async function createEvent(eventDate: string, season: string, label?: string, location?: string) {
   const db = await getDb();
   if (!db) throw new Error("DB unavailable");
-  const [result] = await db.insert(concessionEvents).values({ eventDate: new Date(eventDate + "T12:00:00Z"), season, label, location, isActive: true });
-  const eventId = (result as any).insertId as number;
+  const [result] = await db.insert(concessionEvents).values({ eventDate, season, label, location, isActive: true }).returning({ id: concessionEvents.id });
+  const eventId = result.id;
   // Create the 4 standard slots: Co-Cook, Kitchen Assistant, and two Cashiers.
   for (const { role, count } of STANDARD_SLOT_DEFINITIONS) {
     for (let i = 0; i < count; i++) {
@@ -296,13 +271,16 @@ export async function updateEvent(id: number, data: { eventDate?: string; label?
   if (data.label !== undefined) updateData.label = data.label;
   if (data.location !== undefined) updateData.location = data.location;
   if (data.isActive !== undefined) updateData.isActive = data.isActive;
-  if (data.eventDate !== undefined) updateData.eventDate = new Date(data.eventDate + "T12:00:00Z");
+  if (data.eventDate !== undefined) updateData.eventDate = data.eventDate;
   await db.update(concessionEvents).set(updateData as any).where(eq(concessionEvents.id, id));
 }
 
 export async function deleteEvent(id: number) {
   const db = await getDb();
   if (!db) throw new Error("DB unavailable");
+  // D1/SQLite may not enforce FK cascades, so remove children explicitly.
+  await db.delete(volunteers).where(eq(volunteers.eventId, id));
+  await db.delete(volunteerSlots).where(eq(volunteerSlots.eventId, id));
   await db.delete(concessionEvents).where(eq(concessionEvents.id, id));
 }
 
@@ -367,8 +345,8 @@ export async function createVolunteer(data: {
 }) {
   const db = await getDb();
   if (!db) throw new Error("DB unavailable");
-  const [result] = await db.insert(volunteers).values({ ...data, status: "confirmed" });
-  const id = (result as any).insertId as number;
+  const [result] = await db.insert(volunteers).values({ ...data, status: "confirmed" }).returning({ id: volunteers.id });
+  const id = result.id;
   // Mark slot as taken
   await setSlotOpen(data.slotId, false);
   return id;
@@ -541,7 +519,7 @@ export async function getDashboardStats() {
 export async function upsertCronJob(name: string, taskUid: string | null, description?: string) {
   const db = await getDb();
   if (!db) return;
-  await db.insert(cronJobs).values({ name, taskUid, description }).onDuplicateKeyUpdate({ set: { taskUid, description } });
+  await db.insert(cronJobs).values({ name, taskUid, description }).onConflictDoUpdate({ target: cronJobs.name, set: { taskUid, description } });
 }
 
 export async function getCronJob(name: string) {

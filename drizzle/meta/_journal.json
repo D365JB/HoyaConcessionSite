@@ -1,47 +1,12 @@
 {
   "version": "7",
-  "dialect": "mysql",
+  "dialect": "sqlite",
   "entries": [
     {
       "idx": 0,
-      "version": "5",
-      "when": 1785159990699,
-      "tag": "0000_silky_ricochet",
-      "breakpoints": true
-    },
-    {
-      "idx": 1,
-      "version": "5",
-      "when": 1785160156111,
-      "tag": "0001_cloudy_drax",
-      "breakpoints": true
-    },
-    {
-      "idx": 2,
-      "version": "5",
-      "when": 1785161512217,
-      "tag": "0002_legal_peter_parker",
-      "breakpoints": true
-    },
-    {
-      "idx": 3,
-      "version": "5",
-      "when": 1786978888713,
-      "tag": "0003_illegal_gunslinger",
-      "breakpoints": true
-    },
-    {
-      "idx": 4,
-      "version": "5",
-      "when": 1786980777721,
-      "tag": "0004_old_genesis",
-      "breakpoints": true
-    },
-    {
-      "idx": 5,
-      "version": "5",
-      "when": 1787000651378,
-      "tag": "0005_soft_impossible_man",
+      "version": "6",
+      "when": 1787002922129,
+      "tag": "0000_sparkling_namor",
       "breakpoints": true
     }
   ]
