@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { Add24Regular as Plus, Delete24Regular as Trash2, Edit24Regular as Edit2, SpinnerIos20Regular as Loader2, CalendarLtr24Regular as CalendarDays, ToggleLeft24Regular as ToggleLeft, ToggleRight24Regular as ToggleRight, Alert24Regular as Bell, AlertOff24Regular as BellOff, CheckmarkCircle24Regular as CheckCircle2, ArrowUpload24Regular as Upload } from "@fluentui/react-icons";
+import { Add24Regular as Plus, Delete24Regular as Trash2, Edit24Regular as Edit2, SpinnerIos20Regular as Loader2, CalendarLtr24Regular as CalendarDays, ToggleLeft24Regular as ToggleLeft, ToggleRight24Regular as ToggleRight, Alert24Regular as Bell, AlertOff24Regular as BellOff, CheckmarkCircle24Regular as CheckCircle2, ArrowUpload24Regular as Upload, ArrowDownload24Regular as Download } from "@fluentui/react-icons";
 
 function formatDate(dateVal: string | Date): string {
   const s = typeof dateVal === "string" ? dateVal : dateVal.toISOString();
@@ -61,6 +61,19 @@ function parseEventsCsv(text: string, season: string): { events: ParsedEvent[]; 
     events.push({ eventDate: date, season, location: location || undefined, label: label || undefined });
   }
   return { events, skipped };
+}
+
+function downloadEventTemplate() {
+  const csv = "Date,Location,Label\n2026-08-31,Hoya Field Concession Stand,Season Opener\n2026-09-07,Hoya Field Concession Stand,\n";
+  const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "hoyas-events-template.csv";
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
 }
 
 export default function AdminSeason() {
@@ -348,6 +361,9 @@ export default function AdminSeason() {
           </DialogHeader>
           <div className="space-y-4 mt-2">
             <p className="text-xs text-gray-500">One row per game night — columns <b>Date, Location, Label</b> (Location/Label optional). Dates accept <b>YYYY-MM-DD</b> or <b>M/D/YYYY</b>. Each event auto-creates the 4 standard slots (Co-Cook, Kitchen Assistant, 2× Cashier).</p>
+            <Button type="button" variant="outline" size="sm" onClick={downloadEventTemplate} className="h-8 text-xs">
+              <Download className="w-3.5 h-3.5 mr-1.5" /> Download CSV template
+            </Button>
             <div className="space-y-1.5">
               <Label>Season</Label>
               <Input value={bulkSeason} onChange={(e) => setBulkSeason(e.target.value)} placeholder="2026" />
