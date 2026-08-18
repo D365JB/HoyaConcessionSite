@@ -448,7 +448,6 @@ export default function Home() {
           <div className="flex flex-wrap justify-center gap-4 text-sm">
             {[
               { icon: "🏈", text: "Football & Cheer" },
-              { icon: "👥", text: "Family Volunteers" },
               { icon: "🍔", text: "Concession Stand" },
             ].map(({ icon, text }) => (
               <div key={text} className="flex items-center gap-2 bg-white/10 rounded-full px-4 py-2 text-white">
@@ -491,7 +490,7 @@ export default function Home() {
         <div className="flex items-center justify-between mb-6">
           <div>
             <h2 className="text-xl sm:text-2xl font-bold text-gray-900" style={{ fontFamily: "Montserrat, sans-serif" }}>
-              Upcoming Game Nights
+              Upcoming Practice Nights
             </h2>
             <p className="text-sm text-gray-500 mt-1">
               {events ? `${events.length} events · Click an event to see open positions` : "Loading schedule..."}
@@ -522,7 +521,7 @@ export default function Home() {
           <div className="text-center py-20">
             <CalendarDays className="w-12 h-12 mx-auto mb-3 text-gray-300" />
             <p className="text-gray-500 font-medium">No upcoming events</p>
-            <p className="text-sm text-gray-400 mt-1">Check back soon for the next game night schedule.</p>
+            <p className="text-sm text-gray-400 mt-1">Check back soon for the next practice night schedule.</p>
           </div>
         )}
 
