@@ -4,6 +4,9 @@
   "main": "../server/cloudflareWorker.ts",
   "compatibility_date": "2026-08-17",
   "compatibility_flags": ["nodejs_compat"],
+  "routes": [
+    { "pattern": "hoyaconcessions.com", "custom_domain": true }
+  ],
   "vars": {
     "CLOUDFLARE_WORKER": "true"
   },
